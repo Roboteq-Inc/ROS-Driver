@@ -1,0 +1,24 @@
+frequencyH : 50
+frequencyL : 100
+frequencyG : 100 
+
+queryH:
+ motor_amps : ?A 
+ motor_command : ?M
+ encoder_count : ?C
+ encoder_speed : ?S
+
+queryL: 
+ error : ?E 
+ feedback : ?F 
+ battery_amps : ?BA
+ power : ?P
+ 
+
+queryG: 
+ fault_flag : ?FF  
+# status_flag : ?FS
+# firmware_id : ?FID
+ 
+ 
+ 

@@ -1,0 +1,33 @@
+frequencyH : 50
+frequencyL : 100
+
+queryH[1]:
+ motor_amps_1 : ?A 1 
+ motor_command_1 : ?M 1
+ encoder_count_1 : ?C 1
+ encoder_speed_1 : ?S 1
+
+queryH[2]:
+ motor_amps_2 : ?A 2 
+ motor_command_2 : ?M 2
+ encoder_count_2 : ?C 2
+ encoder_speed_2 : ?S 2
+  
+queryL[1]: 
+ MCU_temp : ?T 1
+ battery_volt_1 : ?V 1
+ battery_amps_1 : ?BA 1
+ power_1 : ?P 1
+ 
+queryL[2]: 
+ MCU_temp : ?T 1
+ battery_volt_2 : ?V 2
+ battery_amps_2 : ?BA 2
+ power_2 : ?P 2 
+ 
+frequencyG : 100 
+queryG: 
+ fault_flag : ?FF  # always keep this query for Fault flag
+ 
+ 
+ 
