@@ -139,10 +139,7 @@ void Driver::run(){
     	
 	Val VH = iter->second;	
 		ss1 << VH << "_";
-    				
-		
-	
-	
+    
 	}
 	ss1 << "# " << frequencyH << "_";
 	
@@ -202,7 +199,7 @@ void Driver::run(){
     	
     	ser.write(ss1.str());
     	ser.write(ss2.str());
-    	ser.write(ss3.str());
+    	//ser.write(ss3.str());
     	read_publisher = nh.advertise<std_msgs::String>("read", 1000);
     	
     	
@@ -228,7 +225,7 @@ void Driver::run(){
 	    boost::split(fields, result.data, boost::algorithm::is_any_of("D"));
 	    ROS_INFO_STREAM(fields[1]);
 	    ROS_INFO_STREAM(fields[2]);
-	    ROS_INFO_STREAM(fields[3]);
+	    
 	    
 	    std::vector<std::string> fields_H;
 	    boost::split(fields_H, fields[1], boost::algorithm::is_any_of(":"));
@@ -256,12 +253,13 @@ void Driver::run(){
 	    }
 	    
 	    std::vector<std::string> fields_L;
-	    std::vector<std::string> fields_L2;
+	    std::vector<std::string> fields_G;
+	    boost::split(fields_G, fields[3], boost::algorithm::is_any_of(":"));
 	    boost::split(fields_L, fields[2], boost::algorithm::is_any_of(":"));
-	    boost::split(fields_L2, fields[3], boost::algorithm::is_any_of(":"));
 	    
 	    
-	    if (fields_L[0] == "L" && fields_L2[0] == "G" )
+	    
+	    if (fields_L[0] == "L" || fields_G[0] == "L" )
 	    {
 	    	
 
@@ -277,9 +275,7 @@ void Driver::run(){
 	    
 	    }
 	     
-            std::vector<std::string> fields_G;
-	    boost::split(fields_G, fields[4], boost::algorithm::is_any_of(":"));
-	    
+           /* 
 	    if (fields_G[0] == "G" )
 	    {
 	    	
@@ -292,12 +288,12 @@ void Driver::run(){
 	    	
 	    	
 	    	}	    
-		ROS_INFO_STREAM("success!");
-		ROS_INFO_STREAM("Type the command - \"rostopic list\" - in new terminal for publishers");
-	    }
+		
+	    }*/
 	    
 	    
-	    
+	ROS_INFO_STREAM("success!");
+	ROS_INFO_STREAM("Type the command - \"rostopic list\" - in new terminal for publishers");  
 	    
 	Driver::roboteq_subscriber();
 
