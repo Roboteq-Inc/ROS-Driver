@@ -1,24 +1,24 @@
-frequencyH : 50
-frequencyL : 100
-frequencyG : 100 
+frequencyH : 50   #higher frequency (value is in ms)
+frequencyL : 100  #lower frequency
+frequencyG : 100  #frequency for general queries
 
 queryH:
  motor_amps : ?A 
  motor_command : ?M
  encoder_count : ?C
- encoder_speed : ?S
+ encoder_speed : ?S  #these queries will publish with higher frequency and users can add other queries below encoder_speed.
 
 queryL: 
  error : ?E 
  feedback : ?F 
  battery_amps : ?BA
- power : ?P
+ power : ?P          #these queries will publish with lower frequency and users can add other queries below power.
  
 
 queryG: 
  fault_flag : ?FF  
 # status_flag : ?FS
-# firmware_id : ?FID
+# firmware_id : ?FID  Users can add queries which do not require channel number under queryG tab. 
  
  
  
