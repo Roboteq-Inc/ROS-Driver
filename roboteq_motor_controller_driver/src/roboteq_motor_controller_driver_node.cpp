@@ -122,7 +122,7 @@ void Driver::run(){
 	nh.getParam("queryH", map_sH);
 	
 	
-	ROS_INFO_STREAM("-------");
+	
 	
 	
 	std::stringstream ss1;
@@ -140,13 +140,12 @@ void Driver::run(){
 	Val VH = iter->second;	
 		ss1 << VH << "_";
     				
-		ROS_INFO_STREAM("-------");
+		
 	
 	
 	}
 	ss1 << "# " << frequencyH << "_";
-	ROS_INFO_STREAM(ss1.str());
-	ROS_INFO_STREAM("********");
+	
 	
 	std::vector<ros::Publisher> publisherVecH;
     	for (int i = 0; i< KH_vector.size(); i++){
@@ -165,18 +164,17 @@ void Driver::run(){
 		ROS_INFO_STREAM(KL);
 	Val VL = iter->second;
 		ss2 << VL << "_";
-		ROS_INFO_STREAM(VL);
-		ROS_INFO_STREAM("-------");
+		
 		
 	}
 	ss2 << "# " << frequencyL << "_";
-	ROS_INFO_STREAM(ss2.str());
+	
 	
 	std::vector<ros::Publisher> publisherVecL;
 	for(int i=0; i<KL_vector.size(); ++i){
 		publisherVecL.push_back(nh.advertise<roboteq_motor_controller_driver::channel_values>(KL_vector[i],100));
 	}
-		ROS_INFO_STREAM("|||||||||||||||||||||||||||||||||||||||||||");	
+		
 	
 	std::map<Key,Val> map_sG;
 	nh.getParam("queryG", map_sG);
@@ -189,12 +187,11 @@ void Driver::run(){
 		ROS_INFO_STREAM(KG);
 	Val VG = iter->second;
 		ss3 << VG << "_";
-		ROS_INFO_STREAM(VG);
-		ROS_INFO_STREAM("-------");
+		
 		
 	}
 	ss3 << "# " << frequencyG << "_";
-	ROS_INFO_STREAM(ss3.str());
+	
 	
 	std::vector<ros::Publisher> publisherVecG;
 	for(int i=0; i<KG_vector.size(); ++i){
@@ -222,8 +219,8 @@ void Driver::run(){
             ROS_INFO_STREAM("Reading from serial port" << ser.available());
             std_msgs::String result;
             result.data = ser.read(ser.available());
-            ROS_INFO_STREAM("Read: " << result.data);
-            //ROS_INFO_STREAM("ss2: " << ss2.str());
+           
+            
             read_publisher.publish(result);
             boost::replace_all(result.data, "\r", "");
             std::vector<std::string> fields;
@@ -239,7 +236,7 @@ void Driver::run(){
 	    if (fields_H[0] == "H")
 	    {
 	    	
-	    	ROS_INFO_STREAM("entering H loop");
+	    	
 	    	for(int i=0; i< publisherVecH.size(); ++i){
 	    	
 	    	roboteq_motor_controller_driver::channel_values Q1;
@@ -266,7 +263,7 @@ void Driver::run(){
 	    
 	    if (fields_L[0] == "L" && fields_L2[0] == "G" )
 	    {
-	    	ROS_INFO_STREAM("entering L loop");
+	    	
 
 	    	for(int i=0; i< publisherVecL.size(); ++i){
 	    	roboteq_motor_controller_driver::channel_values Q1;
@@ -285,7 +282,7 @@ void Driver::run(){
 	    
 	    if (fields_G[0] == "G" )
 	    {
-	    	ROS_INFO_STREAM("entering G loop");
+	    	
 
 	    	for(int i=0; i< publisherVecG.size(); ++i){
 	    	std_msgs::String Q1;
@@ -295,7 +292,8 @@ void Driver::run(){
 	    	
 	    	
 	    	}	    
-
+		ROS_INFO_STREAM("success!");
+		ROS_INFO_STREAM("Type the command - \"rostopic list\" - in new terminal for publishers");
 	    }
 	    
 	    
