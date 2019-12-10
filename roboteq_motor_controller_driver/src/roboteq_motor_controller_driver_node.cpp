@@ -124,12 +124,13 @@ void Driver::run(){
 	
 	
 	
-	
+	std::stringstream ss0;
 	std::stringstream ss1;
 	std::stringstream ss2;
 	std::stringstream ss3;
 	std::vector<std::string> KH_vector;
 	
+	ss0 << "^echof 1_";
 	ss1 << "# c_/\"DH:\",\":\"";
 	for(std::map<Key,Val>::iterator iter = map_sH.begin(); iter != map_sH.end(); ++iter)
 	{
@@ -196,7 +197,7 @@ void Driver::run(){
 	}
 	
     	
-    	
+    	ser.write(ss0.str());
     	ser.write(ss1.str());
     	ser.write(ss2.str());
     	ser.write(ss3.str());
