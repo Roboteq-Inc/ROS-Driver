@@ -182,7 +182,7 @@ void Driver::run(){
 	{
 	Key KG = iter->first;
 		KG_vector.push_back(KG);
-		ROS_INFO_STREAM(KG);
+		//ROS_INFO_STREAM(KG);
 	Val VG = iter->second;
 		ss3 << VG << "_";
 		
