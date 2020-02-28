@@ -76,7 +76,7 @@ bool Driver::configservice(roboteq_motor_controller_driver::config_srv::Request 
 bool Driver::commandservice(roboteq_motor_controller_driver::command_srv::Request &request, roboteq_motor_controller_driver::command_srv::Response &response) 
 {
 	std::stringstream str;
-	str << "%" << request.userInput << " "<< "_";
+	str << "!" << request.userInput << " " << request.channel << " " << request.value << "_";
 	ser.write(str.str());
 	response.result = str.str();
 	
