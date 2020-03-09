@@ -235,12 +235,12 @@ void Driver::run(){
 	    {
 	    	
 	    	
-	    	for(int i=0; i< publisherVecH.size(); ++i){
+	    	for(int i=0; i< publisherVecH.size(); i+=2){
 	    	
 	    	roboteq_motor_controller_driver::channel_values Q1;
 	    	
-	    	Q1.channel_1 = boost::lexical_cast<int>(fields_H[2*i+1]);
-	    	Q1.channel_2 = boost::lexical_cast<int>(fields_H[2*i+2]);
+	    	Q1.channel_1 = boost::lexical_cast<int>(fields_H[i+1]);
+	    	Q1.channel_2 = boost::lexical_cast<int>(fields_H[i+2]);
 	    	publisherVecH[i].publish(Q1);
 	    	
 	    	
@@ -265,10 +265,10 @@ void Driver::run(){
 	    {
 	    	
 
-	    	for(int i=0; i< publisherVecL.size(); ++i){
+	    	for(int i=0; i< publisherVecL.size(); i+=2){
 	    	roboteq_motor_controller_driver::channel_values Q1;
-	    	Q1.channel_1 = boost::lexical_cast<int>(fields_L[2*i+1]);
-	    	Q1.channel_2 = boost::lexical_cast<int>(fields_L[2*i+2]);
+	    	Q1.channel_1 = boost::lexical_cast<int>(fields_L[i+1]);
+	    	Q1.channel_2 = boost::lexical_cast<int>(fields_L[i+2]);
 	    	publisherVecL[i].publish(Q1);
 	    	
 	    	
