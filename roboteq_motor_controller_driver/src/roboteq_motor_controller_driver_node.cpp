@@ -221,6 +221,7 @@ void Driver::run(){
             
             read_publisher.publish(result);
             boost::replace_all(result.data, "\r", "");
+            boost::replace_all(result.data, "+", "");
             std::vector<std::string> fields;
             std::vector<std::string> Field9;
 	    boost::split(fields, result.data, boost::algorithm::is_any_of("D"));
