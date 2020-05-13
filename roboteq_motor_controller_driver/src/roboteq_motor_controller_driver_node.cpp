@@ -221,6 +221,7 @@ void Driver::run(){
             
             read_publisher.publish(result);
             boost::replace_all(result.data, "\r", "");
+	    boost::replace_all(result.data, "+", "");
             std::vector<std::string> fields;
             std::vector<std::string> Field9;
 	    boost::split(fields, result.data, boost::algorithm::is_any_of("D"));
@@ -239,8 +240,8 @@ void Driver::run(){
 	    	
 	    	roboteq_motor_controller_driver::channel_values Q1;
 	    	
-	    	Q1.channel_1 = boost::lexical_cast<int>(fields_H[2*i+1]);
-	    	Q1.channel_2 = boost::lexical_cast<int>(fields_H[2*i+2]);
+	    	Q1.channel_1 = boost::lexical_cast<int>(fields_H[i+1]);
+	    	
 	    	publisherVecH[i].publish(Q1);
 	    	
 	    	
@@ -267,8 +268,8 @@ void Driver::run(){
 
 	    	for(int i=0; i< publisherVecL.size(); ++i){
 	    	roboteq_motor_controller_driver::channel_values Q1;
-	    	Q1.channel_1 = boost::lexical_cast<int>(fields_L[2*i+1]);
-	    	Q1.channel_2 = boost::lexical_cast<int>(fields_L[2*i+2]);
+	    	Q1.channel_1 = boost::lexical_cast<int>(fields_L[i+1]);
+	    	
 	    	publisherVecL[i].publish(Q1);
 	    	
 	    	
