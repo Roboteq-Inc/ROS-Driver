@@ -1,5 +1,0 @@
-string userInput
-int64 channel
-int64 value
----
-string result
