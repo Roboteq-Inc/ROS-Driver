@@ -140,7 +140,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/roboteq_motor_controller_driver_node.cpp)
 add_executable(roboteq_motor_controller_driver_node
- src/main.cpp
+ #src/main.cpp
  src/roboteq_motor_controller_driver_node.cpp)
  #src/configservice.cpp)
 
