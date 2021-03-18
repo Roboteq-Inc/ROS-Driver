@@ -20,20 +20,17 @@
 #include <roboteq_motor_controller_driver/command_srv.h>
 #include <roboteq_motor_controller_driver/maintenance_srv.h>
 
-
-
 class RoboteqDriver
 {
 public:
-	
 	RoboteqDriver()
 	{
-		initialize();		//constructor - Initialize
+		initialize(); //constructor - Initialize
 	}
-	
+
 	~RoboteqDriver()
 	{
-		if(ser.isOpen())
+		if (ser.isOpen())
 		{
 			ser.close();
 		}
@@ -45,42 +42,39 @@ private:
 	int32_t baud;
 	ros::Publisher read_publisher;
 	ros::Subscriber cmd_vel_sub;
-	
+
 	int channel_number_1;
 	int channel_number_2;
 	int frequencyH;
 	int frequencyL;
 	int frequencyG;
 	ros::NodeHandle nh;
-	
-
 
 	void initialize()
 	{
-		
+
 		nh.getParam("port", port);
-   		nh.getParam("baud", baud);
+		nh.getParam("baud", baud);
 		cmd_vel_sub = nh.subscribe("/cmd_vel", 10, &RoboteqDriver::cmd_vel_callback, this);
-		
+
 		connect();
 	}
 
 	void connect()
 	{
-		
+
 		try
 		{
-			
+
 			ser.setPort(port);
 			ser.setBaudrate(baud); //get baud as param
 			serial::Timeout to = serial::Timeout::simpleTimeout(1000);
 			ser.setTimeout(to);
 			ser.open();
-			
 		}
 		catch (serial::IOException &e)
 		{
-			
+
 			ROS_ERROR_STREAM("Unable to open port ");
 			ROS_INFO_STREAM("Unable to open port");
 			;
@@ -89,7 +83,6 @@ private:
 		{
 
 			ROS_INFO_STREAM("Serial Port initialized\"");
-			
 		}
 		else
 		{
@@ -110,17 +103,13 @@ private:
 		ser.write(cmd_sub.str());
 		ser.flush();
 		ROS_INFO_STREAM(cmd_sub.str());
-		
 	}
 
 	ros::NodeHandle n;
 	ros::ServiceServer configsrv;
 	ros::ServiceServer commandsrv;
 	ros::ServiceServer maintenancesrv;
-	
-	
 
-	
 	bool configservice(roboteq_motor_controller_driver::config_srv::Request &request, roboteq_motor_controller_driver::config_srv::Response &response)
 	{
 		std::stringstream str;
@@ -167,7 +156,6 @@ private:
 		maintenancesrv = n.advertiseService("maintenance_service", &RoboteqDriver::maintenanceservice, this);
 	}
 
-
 	void run()
 	{
 		initialize_services();
@@ -193,11 +181,11 @@ private:
 		for (std::map<Key, Val>::iterator iter = map_sH.begin(); iter != map_sH.end(); ++iter)
 		{
 			Key KH = iter->first;
-			
+
 			KH_vector.push_back(KH);
 
 			Val VH = iter->second;
-			
+
 			ss1 << VH << "_";
 		}
 		ss1 << "# " << frequencyH << "_";
@@ -208,12 +196,11 @@ private:
 			publisherVecH.push_back(nh.advertise<roboteq_motor_controller_driver::channel_values>(KH_vector[i], 100));
 		}
 
-		
 		ser.write(ss0.str());
 		ser.write(ss1.str());
 		ser.write(ss2.str());
 		ser.write(ss3.str());
-		
+
 		ser.flush();
 		int count = 0;
 		read_publisher = nh.advertise<std_msgs::String>("read", 1000);
@@ -226,22 +213,21 @@ private:
 			if (ser.available())
 			{
 
-				
 				std_msgs::String result;
 				result.data = ser.read(ser.available());
-				
+
 				read_publisher.publish(result);
 				boost::replace_all(result.data, "\r", "");
 				boost::replace_all(result.data, "+", "");
-				
+
 				std::vector<std::string> fields;
 
 				std::vector<std::string> Field9;
 				boost::split(fields, result.data, boost::algorithm::is_any_of("D"));
-				
+
 				std::vector<std::string> fields_H;
 				boost::split(fields_H, fields[1], boost::algorithm::is_any_of("?"));
-				
+
 				if (fields_H[0] == "H")
 				{
 
@@ -252,50 +238,41 @@ private:
 
 						boost::split(sub_fields_H, fields_H[i + 1], boost::algorithm::is_any_of(":"));
 						roboteq_motor_controller_driver::channel_values Q1;
-						
-				
+
 						for (int j = 0; j < sub_fields_H.size(); j++)
 						{
-							
+
 							try
 							{
 								Q1.value.push_back(boost::lexical_cast<int>(sub_fields_H[j]));
 							}
-							catch(const std::exception& e)
+							catch (const std::exception &e)
 							{
 								count++;
-								if(count>10){
-										ROS_INFO_STREAM("Garbage data on Serial");
-										//std::cerr << e.what() << '\n';
-								} 
+								if (count > 10)
+								{
+									ROS_INFO_STREAM("Garbage data on Serial");
+									//std::cerr << e.what() << '\n';
+								}
 							}
-							
-							
 						}
 
 						publisherVecH[i].publish(Q1);
 					}
 				}
-						
 			}
 			loop_rate.sleep();
-			
 		}
 	}
-}
-;
+};
 
-
-
-int main(int argc, char** argv){
+int main(int argc, char **argv)
+{
 	ros::init(argc, argv, "roboteq_motor_controller_driver");
-	
-	
-	RoboteqDriver driver;	
-	
-	ros::waitForShutdown();
-	
-		
-	return 0;
 
+	RoboteqDriver driver;
+
+	ros::waitForShutdown();
+
+	return 0;
 }
