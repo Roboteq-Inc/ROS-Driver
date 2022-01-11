@@ -24,12 +24,12 @@
 #include <geometry_msgs/Twist.h>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
-#include <roboteq_motor_controller_driver/channel_values.h>
-#include <roboteq_motor_controller_driver/config_srv.h>
-#include <roboteq_motor_controller_driver/command_srv.h>
-#include <roboteq_motor_controller_driver/maintenance_srv.h>
+#include <roboteq_controller/channel_values.h>
+#include <roboteq_controller/config_srv.h>
+#include <roboteq_controller/command_srv.h>
+#include <roboteq_controller/maintenance_srv.h>
 #include <serial/serial.h>
-#include <roboteq_motor_controller_driver/querylist.h>
+#include <roboteq_controller/querylist.h>
 #include <boost/algorithm/string/regex.hpp>
 #include <boost/regex.hpp>
 
@@ -68,11 +68,11 @@ public:
 	
 	
 	void roboteq_services();
-	bool configservice(roboteq_motor_controller_driver::config_srv::Request& req,     	roboteq_motor_controller_driver::config_srv::Response& res);
+	bool configservice(roboteq_controller::config_srv::Request& req,     	roboteq_controller::config_srv::Response& res);
 	
-	bool commandservice(roboteq_motor_controller_driver::command_srv::Request& req,     	roboteq_motor_controller_driver::command_srv::Response& res);
+	bool commandservice(roboteq_controller::command_srv::Request& req,     	roboteq_controller::command_srv::Response& res);
 	
-	bool maintenanceservice(roboteq_motor_controller_driver::maintenance_srv::Request& req,     	roboteq_motor_controller_driver::maintenance_srv::Response& res);
+	bool maintenanceservice(roboteq_controller::maintenance_srv::Request& req,     	roboteq_controller::maintenance_srv::Response& res);
 	
 	
 private:

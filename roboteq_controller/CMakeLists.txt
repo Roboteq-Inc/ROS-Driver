@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(roboteq_motor_controller_driver)
+project(roboteq_controller)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -121,7 +121,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
   include
-  ${roboteq_motor_controller_driver_INCLUDE_DIRS}
+  ${roboteq_controller_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
@@ -139,9 +139,9 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/roboteq_motor_controller_driver_node.cpp)
-add_executable(roboteq_motor_controller_driver_node
+add_executable(roboteq_controller_node
  #src/main.cpp
- src/roboteq_motor_controller_driver_node.cpp)
+ src/roboteq_controller_node.cpp)
  #src/configservice.cpp)
 
 ## Rename C++ executable without prefix
@@ -152,16 +152,16 @@ add_executable(roboteq_motor_controller_driver_node
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(roboteq_motor_controller_driver_node  roboteq_motor_controller_driver_generate_messages_cpp)
+add_dependencies(roboteq_controller_node  roboteq_controller_generate_messages_cpp)
 
-target_link_libraries(roboteq_motor_controller_driver_node
+target_link_libraries(roboteq_controller_node
   ${catkin_LIBRARIES}
 )
 
 add_executable(config_client
  src/config_client.cpp)
 
- add_dependencies(config_client  roboteq_motor_controller_driver_generate_messages_cpp)
+ add_dependencies(config_client  roboteq_controller_generate_messages_cpp)
 
 target_link_libraries(config_client
   ${catkin_LIBRARIES}
@@ -170,7 +170,7 @@ target_link_libraries(config_client
 add_executable(command_client
  src/command_client.cpp)
 
- add_dependencies(command_client  roboteq_motor_controller_driver_generate_messages_cpp)
+ add_dependencies(command_client  roboteq_controller_generate_messages_cpp)
 
 target_link_libraries(command_client
   ${catkin_LIBRARIES}
@@ -180,7 +180,7 @@ target_link_libraries(command_client
 add_executable(maintenance_client
  src/maintenance_client.cpp)
 
- add_dependencies(maintenance_client  roboteq_motor_controller_driver_generate_messages_cpp)
+ add_dependencies(maintenance_client  roboteq_controller_generate_messages_cpp)
 
 target_link_libraries(maintenance_client
   ${catkin_LIBRARIES}
@@ -189,7 +189,7 @@ target_link_libraries(maintenance_client
 add_executable(diff_odom
  src/diff_odom.cpp)
 
- add_dependencies(diff_odom  roboteq_motor_controller_driver_generate_messages_cpp)
+ add_dependencies(diff_odom  roboteq_controller_generate_messages_cpp)
 
 target_link_libraries(diff_odom
   ${catkin_LIBRARIES}
@@ -228,7 +228,7 @@ install(DIRECTORY include/${PROJECT_NAME}/
 )
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
-install(TARGETS roboteq_motor_controller_driver_node
+install(TARGETS roboteq_controller_node
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

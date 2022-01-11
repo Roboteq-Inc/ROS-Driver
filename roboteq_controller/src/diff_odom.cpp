@@ -5,7 +5,7 @@
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 #include <math.h>
-#include <roboteq_motor_controller_driver/roboteq_motor_controller_driver_node.h>
+#include "roboteq_controller/roboteq_controller_node.h"
 
 
 
@@ -67,9 +67,9 @@ private:
 	ros::Time current_time, last_time;
 
 
-	void leftencoderCb(const roboteq_motor_controller_driver::channel_values& left_ticks);
+	void leftencoderCb(const roboteq_controller::channel_values& left_ticks);
 
-	void rightencoderCb(const roboteq_motor_controller_driver::channel_values& right_ticks); 	
+	void rightencoderCb(const roboteq_controller::channel_values& right_ticks); 	
 	void init_variables();
 
 	
@@ -290,7 +290,7 @@ void Odometry_calc::update(){
 
 
 
-void Odometry_calc::leftencoderCb(const roboteq_motor_controller_driver::channel_values& left_ticks)
+void Odometry_calc::leftencoderCb(const roboteq_controller::channel_values& left_ticks)
 
 {
 
@@ -324,7 +324,7 @@ void Odometry_calc::leftencoderCb(const roboteq_motor_controller_driver::channel
 
 //Right encoder callback
 
-void Odometry_calc::rightencoderCb(const roboteq_motor_controller_driver::channel_values& right_ticks)
+void Odometry_calc::rightencoderCb(const roboteq_controller::channel_values& right_ticks)
 
 {
 

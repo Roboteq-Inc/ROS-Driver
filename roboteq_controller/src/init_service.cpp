@@ -1,6 +1,6 @@
-#include <roboteq_motor_controller_driver/roboteq_motor_controller_driver_node.h>
+#include <roboteq_controller/roboteq_controller_node.h>
 
-bool Driver::configservice(roboteq_motor_controller_driver::config_srv::Request &request, roboteq_motor_controller_driver::config_srv::Response &response) 
+bool Driver::configservice(roboteq_controller::config_srv::Request &request, roboteq_controller::config_srv::Response &response) 
 {
 	std::stringstream str;
 	str << "^" << request.userInput << " " << request.channel << " " << request.value << "_ " << "%\clsav321654987";
@@ -11,7 +11,7 @@ bool Driver::configservice(roboteq_motor_controller_driver::config_srv::Request 
 	return true;
 } 
 
-bool Driver::commandservice(roboteq_motor_controller_driver::command_srv::Request &request, roboteq_motor_controller_driver::command_srv::Response &response) 
+bool Driver::commandservice(roboteq_controller::command_srv::Request &request, roboteq_controller::command_srv::Response &response) 
 {
 	std::stringstream str;
 	str << "%" << request.userInput << " "<< "_";
@@ -22,7 +22,7 @@ bool Driver::commandservice(roboteq_motor_controller_driver::command_srv::Reques
 	return true;
 } 
 
-bool Driver::maintenanceservice(roboteq_motor_controller_driver::maintenance_srv::Request &request, roboteq_motor_controller_driver::maintenance_srv::Response &response) 
+bool Driver::maintenanceservice(roboteq_controller::maintenance_srv::Request &request, roboteq_controller::maintenance_srv::Response &response) 
 {
 	std::stringstream str;
 	str << "%" << request.userInput << " " << "_";
