@@ -122,22 +122,22 @@ RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 	// Initiate communication to serial port
 	try{	
 		ser.setPort(serial_port_);
-		ser.setBaudrate(baudrate_); //get baud as param
+		ser.setBaudrate(baudrate_);
 		serial::Timeout timeout = serial::Timeout::simpleTimeout(1000);
 		ser.setTimeout(timeout);
 		ser.open();
 	}
 	catch (serial::IOException &e){
-		ROS_ERROR_STREAM("Unable to open port ");
-		ROS_INFO_STREAM("Unable to open port");
+		ROS_ERROR_STREAM("Unable to open port " << serial_port_);
+		ROS_INFO_STREAM("Unable to open port" << serial_port_);
 		ros::shutdown();
 	}
 
 	if (ser.isOpen()){
-		ROS_INFO_STREAM("Serial Port initialized\"");
+		ROS_INFO_STREAM("Serial Port " << serial_port_ << " initialized\"");
 	}
 	else{
-		ROS_INFO_STREAM("Serial Port is not open");
+		ROS_INFO_STREAM("Serial Port " << serial_port_ << " is not open");
 		ros::shutdown();
 	}
 
