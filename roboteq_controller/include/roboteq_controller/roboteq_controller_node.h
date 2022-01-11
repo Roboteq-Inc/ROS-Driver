@@ -3,31 +3,33 @@
 
 #include <ros/ros.h>
 #include <tf/tf.h>
-#include <ros/ros.h>
-#include <tf/tf.h>
 
 //! ROS standard msgs
-#include <geometry_msgs/Quaternion.h>
-#include <geometry_msgs/Vector3Stamped.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/NavSatFix.h>
-#include <sensor_msgs/Joy.h>
-#include <sensor_msgs/TimeReference.h>
-#include <sensor_msgs/BatteryState.h>
-#include <sensor_msgs/Image.h>
-#include <std_msgs/UInt8.h>
-#include <std_msgs/Int16.h>
-#include <std_msgs/Float32.h>
-#include <std_msgs/String.h>
-#include <tf/tf.h>
+// #include <geometry_msgs/Quaternion.h>
+// #include <geometry_msgs/Vector3Stamped.h>
+// #include <sensor_msgs/Imu.h>
+// #include <sensor_msgs/NavSatFix.h>
+// #include <sensor_msgs/Joy.h>
+// #include <sensor_msgs/TimeReference.h>
+// #include <sensor_msgs/BatteryState.h>
+// #include <sensor_msgs/Image.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/Twist.h>
-#include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
+
+// #include <std_msgs/UInt8.h>
+// #include <std_msgs/Int16.h>
+// #include <std_msgs/Float32.h>
+// #include <std_msgs/String.h>
+
+#include <tf/transform_broadcaster.h>
+
 #include <roboteq_controller/channel_values.h>
+
 #include <roboteq_controller/config_srv.h>
 #include <roboteq_controller/command_srv.h>
 #include <roboteq_controller/maintenance_srv.h>
+
 #include <serial/serial.h>
 #include <roboteq_controller/querylist.h>
 #include <boost/algorithm/string/regex.hpp>
@@ -82,9 +84,9 @@ private:
 	int channel;
 	
 	
-geometry_msgs::TransformStamped tf_msg;
-tf::TransformBroadcaster odom_broadcaster;
-nav_msgs::Odometry odom_msg;
+	geometry_msgs::TransformStamped tf_msg;
+	tf::TransformBroadcaster odom_broadcaster;
+	nav_msgs::Odometry odom_msg;
     nav_msgs::Odometry odom;
 
 	enum fault_flag

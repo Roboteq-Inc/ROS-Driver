@@ -5,8 +5,12 @@
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
 #include <math.h>
-#include "roboteq_controller/roboteq_controller_node.h"
 
+#include <roboteq_controller/channel_values.h>
+
+#include <roboteq_controller/config_srv.h>
+#include <roboteq_controller/command_srv.h>
+#include <roboteq_controller/maintenance_srv.h>
 
 
 class Odometry_calc{

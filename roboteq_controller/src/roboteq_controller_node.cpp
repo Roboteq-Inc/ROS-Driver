@@ -81,7 +81,10 @@ RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 	nh_priv_(nh_priv),
 	wheel_circumference_(0.),
 	track_width_(0.),
-	max_rpm_(0.){
+	max_rpm_(0.),
+	frequencyH_(0),
+	frequencyL_(0),
+	frequencyG_(0){
 	
 	nh_priv.param<std::string>("serial_port", serial_port_, "dev/ttyUSB0");
 	nh_priv.param("baudrate", baudrate_, 112500);
@@ -295,6 +298,8 @@ void RoboteqDriver::run(){
 	nh_priv_.getParam("frequencyL", frequencyL_);
 	nh_priv_.getParam("frequencyG", frequencyG_);
 
+	assert(frequencyH_ > 0);
+
 	typedef std::string Key;
 	typedef std::string Val;
 	std::map<Key, Val> map_sH;
@@ -394,6 +399,7 @@ void RoboteqDriver::run(){
 		loop_rate.sleep();
 	}
 }
+
 
 int main(int argc, char **argv)
 {
