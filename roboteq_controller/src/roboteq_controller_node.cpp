@@ -49,7 +49,8 @@ private:
 	ros::Subscriber 		cmd_vel_sub_;
 
 
-	bool 					closed_loop_;
+	bool 					closed_loop_,
+							diff_drive_mode_;
 
 
 	double 					wheel_circumference_,
@@ -67,6 +68,7 @@ private:
 
 	void cmd_setup();
 	void cmd_vel_callback(const geometry_msgs::Twist &);
+	void power_cmd_callback(const geometry_msgs::Twist &);
 	bool configservice(roboteq_controller::config_srv::Request &, roboteq_controller::config_srv::Response &);
 	bool commandservice(roboteq_controller::command_srv::Request &, roboteq_controller::command_srv::Response &);
 	bool maintenanceservice(roboteq_controller::maintenance_srv::Request &, roboteq_controller::maintenance_srv::Response &);
@@ -85,6 +87,7 @@ RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 	nh_priv.param("baudrate", baudrate_, 112500);
 
 	nh_priv_.param("closed_loop", closed_loop_, false);
+	nh_priv_.param("diff_drive_mode", diff_drive_mode_, false);
 	if (close){
 		ROS_WARN("In CLOSED-LOOP mode!!!!");
 	}
@@ -106,7 +109,12 @@ RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 	}
 
 	nh_priv_.param<std::string>("cmd_vel_topic", cmd_vel_topic_, "/cmd_vel");
-	cmd_vel_sub_ = nh_.subscribe(cmd_vel_topic_, 10, &RoboteqDriver::cmd_vel_callback, this);
+	if (diff_drive_mode_){
+		cmd_vel_sub_ = nh_.subscribe(cmd_vel_topic_, 10, &RoboteqDriver::cmd_vel_callback, this);
+	}
+	else{
+		cmd_vel_sub_ = nh_.subscribe(cmd_vel_topic_, 10, &RoboteqDriver::power_cmd_callback, this);
+	}
 
 	// Initiate communication to serial port
 	try{	
@@ -135,6 +143,7 @@ RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 	run();
 }
 
+
 void RoboteqDriver::cmd_setup(){
 	// stop motors
 	ser.write("!G 1 0\r");
@@ -151,15 +160,13 @@ void RoboteqDriver::cmd_setup(){
 	ser.write("^RWD 1000\r");
 
 	// set motor operating mode (1 for closed-loop speed)
-	if (!closed_loop_)
-	{
+	if (!closed_loop_){
 		// open-loop speed mode
 		ser.write("^MMOD 1 0\r");
 		ser.write("^MMOD 2 0\r");
 		ser.flush();
 	}
-	else
-	{
+	else{
 		// closed-loop speed mode
 		ser.write("^MMOD 1 1\r");
 		ser.write("^MMOD 2 1\r");
@@ -173,11 +180,27 @@ void RoboteqDriver::cmd_setup(){
 	left_enccmd << "^EPPR 2 " << 1024 << "\r";
 	ser.write(right_enccmd.str());
 	ser.write(left_enccmd.str());
-
 	ser.flush();
+}
 
 
-
+void RoboteqDriver::power_cmd_callback(const geometry_msgs::Twist &msg){
+	std::stringstream cmd_sub;
+	if (closed_loop_){
+		cmd_sub << "!S 1"
+				<< " " << msg.linear.x << "_"
+				<< "!S 2"
+				<< " " << msg.angular.z << "_";
+	}
+	else{
+		cmd_sub << "!G 1"
+				<< " " << msg.linear.x << "_"
+				<< "!G 2"
+				<< " " << msg.angular.z << "_";
+	}
+	ser.write(cmd_sub.str());
+	ser.flush();
+	ROS_INFO_STREAM(cmd_sub.str());
 }
 
 

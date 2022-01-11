@@ -1,4 +1,4 @@
-#include <roboteq_controller/roboteq_controller_node.h>
+#include "roboteq_controller/roboteq_controller_node.h"
 
 bool Driver::configservice(roboteq_controller::config_srv::Request &request, roboteq_controller::config_srv::Response &response) 
 {

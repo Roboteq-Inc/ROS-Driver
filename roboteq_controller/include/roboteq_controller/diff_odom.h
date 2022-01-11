@@ -1,4 +1,5 @@
-#include "ros/ros.h"
+#include <ros/ros.h>
+#include <tf/transform_broadcaster.h>
 
 class Odometry_calc{
 
@@ -6,7 +7,6 @@ public:
 	Odometry_calc();
 
 	void spin();
-
 
 private:
 	ros::NodeHandle n;
@@ -58,9 +58,9 @@ private:
 	ros::Time current_time, last_time;
 
 
-	void leftencoderCb(const roboteq_motor_controller_driver::channel_values& left_ticks);
+	void leftencoderCb(const roboteq_controller::channel_values& left_ticks);
 
-	void rightencoderCb(const roboteq_motor_controller_driver::channel_values& right_ticks);
+	void rightencoderCb(const roboteq_controller::channel_values& right_ticks);
 	//void rightencoderCb(std_msgs::Int64::ConstPtr& right_ticks);
 	void init_variables();
 

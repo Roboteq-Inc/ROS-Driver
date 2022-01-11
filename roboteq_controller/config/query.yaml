@@ -1,6 +1,6 @@
 serial_port : "/dev/ttyACM0"
 baudrate : 115200
-
+cmd_vel_topic: "/cmd_vel_roboteq"
 closed_loop: false
 
 wheel_circumference: 0.6594 # [m]

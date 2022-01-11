@@ -160,18 +160,14 @@ target_link_libraries(roboteq_controller_node
 
 add_executable(config_client
  src/config_client.cpp)
-
- add_dependencies(config_client  roboteq_controller_generate_messages_cpp)
-
+add_dependencies(config_client  roboteq_controller_generate_messages_cpp)
 target_link_libraries(config_client
   ${catkin_LIBRARIES}
 )
 
 add_executable(command_client
  src/command_client.cpp)
-
- add_dependencies(command_client  roboteq_controller_generate_messages_cpp)
-
+add_dependencies(command_client  roboteq_controller_generate_messages_cpp)
 target_link_libraries(command_client
   ${catkin_LIBRARIES}
 )
@@ -179,18 +175,14 @@ target_link_libraries(command_client
 
 add_executable(maintenance_client
  src/maintenance_client.cpp)
-
- add_dependencies(maintenance_client  roboteq_controller_generate_messages_cpp)
-
+add_dependencies(maintenance_client  roboteq_controller_generate_messages_cpp)
 target_link_libraries(maintenance_client
   ${catkin_LIBRARIES}
 )
 
 add_executable(diff_odom
  src/diff_odom.cpp)
-
  add_dependencies(diff_odom  roboteq_controller_generate_messages_cpp)
-
 target_link_libraries(diff_odom
   ${catkin_LIBRARIES}
 )
