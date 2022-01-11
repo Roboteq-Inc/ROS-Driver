@@ -185,22 +185,23 @@ void RoboteqDriver::cmd_setup(){
 
 
 void RoboteqDriver::power_cmd_callback(const geometry_msgs::Twist &msg){
-	std::stringstream cmd_sub;
+	std::stringstream cmd_str;
 	if (closed_loop_){
-		cmd_sub << "!S 1"
+		cmd_str << "!S 1"
 				<< " " << msg.linear.x << "_"
 				<< "!S 2"
 				<< " " << msg.angular.z << "_";
 	}
 	else{
-		cmd_sub << "!G 1"
+		cmd_str << "!G 1"
 				<< " " << msg.linear.x << "_"
 				<< "!G 2"
 				<< " " << msg.angular.z << "_";
 	}
-	ser.write(cmd_sub.str());
+	ser.write(cmd_str.str());
 	ser.flush();
-	ROS_INFO_STREAM(cmd_sub.str());
+	ROS_INFO("[ROBOTEQ] left: %9.3f right: %9.3f", msg.linear.x, msg.angular.z);
+	// ROS_INFO_STREAM(cmd_str.str());
 }
 
 
@@ -210,7 +211,7 @@ void RoboteqDriver::cmd_vel_callback(const geometry_msgs::Twist &msg){
 	float left_speed  = msg.linear.x - track_width_ * msg.angular.z / 2.0;
 	
 	// ROS_INFO("[ROBOTEQ] left: %.3f right: %.3f", left_speed, right_speed);
-	std::stringstream cmd_sub;
+	std::stringstream cmd_str;
 	if (!closed_loop_){
 		// motor power (scale 0-1000)
 		float right_power = right_speed *1000.0 *60.0/ (wheel_circumference_ * max_rpm_);
@@ -218,10 +219,10 @@ void RoboteqDriver::cmd_vel_callback(const geometry_msgs::Twist &msg){
 	
 		ROS_INFO("[ROBOTEQ] left: %9d right: %9d", (int)left_power, (int)right_power);
 		
-		cmd_sub << "!G 1"
-				<< " " << (int)right_power << "_"
+		cmd_str << "!G 1"
+				<< " " << (int)left_power << "_"
 				<< "!G 2"
-				<< " " << (int)left_power << "_";
+				<< " " << (int)right_power << "_";
 	}
 	else{
 		// motor speed (rpm)
@@ -229,20 +230,15 @@ void RoboteqDriver::cmd_vel_callback(const geometry_msgs::Twist &msg){
 		int32_t left_rpm  = left_speed  *60.0 / wheel_circumference_;
 
 		ROS_INFO("[ROBOTEQ] left: %9d right: %9d", left_rpm, right_rpm);
-
-		// cmd_sub << "!S 1"
-		// 		<< " " << right_rpm << "_"
-		// 		<< "!S 2"
-		// 		<< " " << left_rpm << "_";
-		cmd_sub << "!S 1"
+		cmd_str << "!S 1"
 				<< " " << left_rpm << "_"
 				<< "!S 2"
 				<< " " << right_rpm << "_";
 	}
 
-	ser.write(cmd_sub.str());
+	ser.write(cmd_str.str());
 	ser.flush();
-	ROS_INFO_STREAM(cmd_sub.str());
+	// ROS_INFO_STREAM(cmd_str.str());
 }
 
 
