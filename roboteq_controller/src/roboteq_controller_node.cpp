@@ -98,15 +98,15 @@ RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 		ROS_WARN("In OPEN-LOOP mode!!!!");
 	}
 
-	nh.getParam("wheel_circumference", wheel_circumference_);
+	nh_priv_.getParam("wheel_circumference", wheel_circumference_);
 	if (wheel_circumference_ <=0.0 ){
 		ROS_ERROR("Inproper configuration! wheel_circumference need to be greater than zero.");
 	}
-	nh.getParam("track_width", track_width_);
+	nh_priv.getParam("track_width", track_width_);
 	if (track_width_ <=0.0 ){
 		ROS_ERROR("Inproper configuration! track_width need to be greater than zero.");
 	}
-	nh.getParam("max_rpm", max_rpm_);
+	nh_priv.getParam("max_rpm", max_rpm_);
 	if ( max_rpm_ <=0.0 ){
 		ROS_ERROR("Inproper configuration! max_rpm need to be greater than zero.");
 	}
