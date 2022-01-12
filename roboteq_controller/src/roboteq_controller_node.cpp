@@ -49,8 +49,8 @@ private:
 	int32_t 				baudrate_;
 
 	// Pub & Sub
-	ros::Publisher 			serial_read_pub_;
 	ros::Subscriber 		cmd_vel_sub_;
+	ros::Publisher 			serial_read_pub_;
 	std::vector<ros::Publisher> publisherVecH_, publisherVecL_, publisherVecG_;
 
 	ros::Timer timerH_, timerL_, timerG_;
@@ -200,6 +200,69 @@ void RoboteqDriver::cmd_setup(){
 	ser_.write(right_enccmd.str());
 	ser_.write(left_enccmd.str());
 	ser_.flush();
+}
+
+
+void RoboteqDriver::run(){
+	initialize_services();
+	nh_priv_.getParam("frequencyH", frequencyH_);
+	nh_priv_.getParam("frequencyL", frequencyL_);
+	nh_priv_.getParam("frequencyG", frequencyG_);
+
+	std::stringstream cmdH{"# c_/\"DH?\",\"?\""};
+	std::map<std::string, std::string> map_sH;
+	if (frequencyH_ > 0){
+		formQuery("queryH", map_sH, publisherVecH_, cmdH);
+		std::stringstream ss;
+		cmdH << "# " << frequencyH_ << "_";
+		ss << "^echof 1_";
+		ser_.write(ss.str());
+		
+		ser_.write(cmdH.str());
+		ser_.flush();
+	}
+
+	std::stringstream cmdL{"# c_/\"DL?\",\"?\""};
+	std::map<std::string, std::string> map_sL;
+	if (frequencyL_ > 0){
+		formQuery("queryL", map_sL, publisherVecL_, cmdL);
+		std::stringstream ss;
+		cmdH << "# " << frequencyL_ << "_";
+
+		ss << "^echof 1_";
+		ser_.write(ss.str());
+		
+		ser_.write(cmdL.str());
+		ser_.flush();
+	}
+
+	std::stringstream cmdG{"# c_/\"DG?\",\"?\""};
+	std::map<std::string, std::string> map_sG;
+	if (frequencyG_ > 0){
+		formQuery("queryG", map_sG, publisherVecG_, cmdG);
+		cmdH << "# " << frequencyG_ << "_";
+		
+		std::stringstream ss;
+		ss << "^echof 1_";
+		ser_.write(ss.str());
+		
+		ser_.write(cmdG.str());
+		ser_.flush();
+	}
+
+	serial_read_pub_ = nh_.advertise<std_msgs::String>("read", 1000);
+	
+	if (frequencyH_ > 0){
+		timerH_ = nh_.createTimer(ros::Duration(frequencyH_/ 1000.), &RoboteqDriver::highFreqCallback, this);
+	}
+
+	if (frequencyL_ > 0){
+		timerL_ = nh_.createTimer(ros::Duration(frequencyH_/ 1000.), &RoboteqDriver::highFreqCallback, this);
+	}
+
+	if (frequencyL_ > 0){
+		timerG_ = nh_.createTimer(ros::Duration(frequencyH_/ 1000.), &RoboteqDriver::highFreqCallback, this);
+	}
 }
 
 
@@ -450,68 +513,6 @@ void RoboteqDriver::generalFreqCallback(const ros::TimerEvent &){
 	}
 }
 
-
-void RoboteqDriver::run(){
-	initialize_services();
-	nh_priv_.getParam("frequencyH", frequencyH_);
-	nh_priv_.getParam("frequencyL", frequencyL_);
-	nh_priv_.getParam("frequencyG", frequencyG_);
-
-	std::stringstream cmdH{"# c_/\"DH?\",\"?\""};
-	std::map<std::string, std::string> map_sH;
-	if (frequencyH_ > 0){
-		formQuery("queryH", map_sH, publisherVecH_, cmdH);
-		std::stringstream ss;
-		cmdH << "# " << frequencyH_ << "_";
-		ss << "^echof 1_";
-		ser_.write(ss.str());
-		
-		ser_.write(cmdH.str());
-		ser_.flush();
-	}
-
-	std::stringstream cmdL{"# c_/\"DL?\",\"?\""};
-	std::map<std::string, std::string> map_sL;
-	if (frequencyL_ > 0){
-		formQuery("queryL", map_sL, publisherVecL_, cmdL);
-		std::stringstream ss;
-		cmdH << "# " << frequencyL_ << "_";
-
-		ss << "^echof 1_";
-		ser_.write(ss.str());
-		
-		ser_.write(cmdL.str());
-		ser_.flush();
-	}
-
-	std::stringstream cmdG{"# c_/\"DG?\",\"?\""};
-	std::map<std::string, std::string> map_sG;
-	if (frequencyG_ > 0){
-		formQuery("queryG", map_sG, publisherVecG_, cmdG);
-		cmdH << "# " << frequencyG_ << "_";
-		
-		std::stringstream ss;
-		ss << "^echof 1_";
-		ser_.write(ss.str());
-		
-		ser_.write(cmdG.str());
-		ser_.flush();
-	}
-
-	serial_read_pub_ = nh_.advertise<std_msgs::String>("read", 1000);
-	
-	if (frequencyH_ > 0){
-		timerH_ = nh_.createTimer(ros::Duration(frequencyH_/ 1000.), &RoboteqDriver::highFreqCallback, this);
-	}
-
-	if (frequencyL_ > 0){
-		timerL_ = nh_.createTimer(ros::Duration(frequencyH_/ 1000.), &RoboteqDriver::highFreqCallback, this);
-	}
-
-	if (frequencyL_ > 0){
-		timerG_ = nh_.createTimer(ros::Duration(frequencyH_/ 1000.), &RoboteqDriver::highFreqCallback, this);
-	}
-}
 
 
 int main(int argc, char **argv)
