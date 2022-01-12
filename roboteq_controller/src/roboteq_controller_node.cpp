@@ -1,17 +1,19 @@
 // #include <roboteq_controller/roboteq_controller_node.h>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/split.hpp>
-
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/classification.hpp>
+
 #include <serial/serial.h>
-#include <ros/ros.h>
-#include <std_msgs/String.h>
-#include <std_msgs/Empty.h>
 #include <iostream>
 #include <sstream>
 #include <typeinfo>
+
+#include <ros/ros.h>
+
+#include <std_msgs/String.h>
+#include <std_msgs/Empty.h>
 #include <geometry_msgs/Twist.h>
 #include <nav_msgs/Odometry.h>
 
@@ -29,11 +31,10 @@ class RoboteqDriver
 public:
 	RoboteqDriver(ros::NodeHandle, ros::NodeHandle);
 	~RoboteqDriver(){
-		if (ser.isOpen()){
-			ser.close();
+		if (ser_.isOpen()){
+			ser_.close();
 		}
 	}
-
 
 private:
 	ros::NodeHandle 		nh_, nh_priv_;
@@ -43,18 +44,20 @@ private:
 	ros::ServiceServer 		maintenancesrv_;
 	
 	// Serial
-	serial::Serial 			ser;
+	serial::Serial 			ser_;
 	std::string 			serial_port_;
 	int32_t 				baudrate_;
 
 	// Pub & Sub
-	ros::Publisher 			read_publisher;
+	ros::Publisher 			serial_read_pub_;
 	ros::Subscriber 		cmd_vel_sub_;
+	std::vector<ros::Publisher> publisherVecH_, publisherVecL_, publisherVecG_;
+
+	ros::Timer timerH_, timerL_, timerG_;
 
 
 	bool 					closed_loop_,
 							diff_drive_mode_;
-
 
 	double 					wheel_circumference_,
 							track_width_,
@@ -77,6 +80,16 @@ private:
 	bool maintenanceservice(roboteq_controller::maintenance_srv::Request &, roboteq_controller::maintenance_srv::Response &);
 	void initialize_services();
 	void run();
+
+	void formQuery(std::string, 
+				std::map<std::string,std::string> &, 
+				std::vector<ros::Publisher> &,
+				std::stringstream &);
+
+	void highFreqCallback	(const ros::TimerEvent &);
+	void lowFreqCallback	(const ros::TimerEvent &);
+	void generalFreqCallback(const ros::TimerEvent &);
+
 };
 
 RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
@@ -124,11 +137,11 @@ RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 
 	// Initiate communication to serial port
 	try{	
-		ser.setPort(serial_port_);
-		ser.setBaudrate(baudrate_);
+		ser_.setPort(serial_port_);
+		ser_.setBaudrate(baudrate_);
 		serial::Timeout timeout = serial::Timeout::simpleTimeout(1000);
-		ser.setTimeout(timeout);
-		ser.open();
+		ser_.setTimeout(timeout);
+		ser_.open();
 	}
 	catch (serial::IOException &e){
 		ROS_ERROR_STREAM(tag << "Unable to open port " << serial_port_);
@@ -136,7 +149,7 @@ RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 		ros::shutdown();
 	}
 
-	if (ser.isOpen()){
+	if (ser_.isOpen()){
 		ROS_INFO_STREAM(tag << "Serial Port " << serial_port_ << " initialized");
 	}
 	else{
@@ -152,31 +165,31 @@ RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 
 void RoboteqDriver::cmd_setup(){
 	// stop motors
-	ser.write("!G 1 0\r");
-	ser.write("!G 2 0\r");
-	ser.write("!S 1 0\r");
-	ser.write("!S 2 0\r");
-	ser.flush();
+	ser_.write("!G 1 0\r");
+	ser_.write("!G 2 0\r");
+	ser_.write("!S 1 0\r");
+	ser_.write("!S 2 0\r");
+	ser_.flush();
 
 	// // disable echo
 	// ser.write("^ECHOF 1\r");
 	// ser.flush();
 
 	// enable watchdog timer (1000 ms) to stop if no connection
-	ser.write("^RWD 1000\r");
+	ser_.write("^RWD 1000\r");
 
 	// set motor operating mode (1 for closed-loop speed)
 	if (!closed_loop_){
 		// open-loop speed mode
-		ser.write("^MMOD 1 0\r");
-		ser.write("^MMOD 2 0\r");
-		ser.flush();
+		ser_.write("^MMOD 1 0\r");
+		ser_.write("^MMOD 2 0\r");
+		ser_.flush();
 	}
 	else{
 		// closed-loop speed mode
-		ser.write("^MMOD 1 1\r");
-		ser.write("^MMOD 2 1\r");
-		ser.flush();
+		ser_.write("^MMOD 1 1\r");
+		ser_.write("^MMOD 2 1\r");
+		ser_.flush();
 	}
 
 	// set encoder counts (ppr)
@@ -184,9 +197,9 @@ void RoboteqDriver::cmd_setup(){
 	std::stringstream left_enccmd;
 	right_enccmd << "^EPPR 1 " << 1024 << "\r";
 	left_enccmd << "^EPPR 2 " << 1024 << "\r";
-	ser.write(right_enccmd.str());
-	ser.write(left_enccmd.str());
-	ser.flush();
+	ser_.write(right_enccmd.str());
+	ser_.write(left_enccmd.str());
+	ser_.flush();
 }
 
 
@@ -204,8 +217,8 @@ void RoboteqDriver::power_cmd_callback(const geometry_msgs::Twist &msg){
 				<< "!G 2"
 				<< " " << msg.angular.z << "_";
 	}
-	ser.write(cmd_str.str());
-	ser.flush();
+	ser_.write(cmd_str.str());
+	ser_.flush();
 	ROS_INFO("[ROBOTEQ] left: %9.3f right: %9.3f", msg.linear.x, msg.angular.z);
 	// ROS_INFO_STREAM(cmd_str.str());
 }
@@ -242,8 +255,8 @@ void RoboteqDriver::cmd_vel_callback(const geometry_msgs::Twist &msg){
 				<< " " << right_rpm << "_";
 	}
 
-	ser.write(cmd_str.str());
-	ser.flush();
+	ser_.write(cmd_str.str());
+	ser_.flush();
 	// ROS_INFO_STREAM(cmd_str.str());
 }
 
@@ -253,8 +266,8 @@ bool RoboteqDriver::configservice(roboteq_controller::config_srv::Request &reque
 	std::stringstream str;
 	str << "^" << request.userInput << " " << request.channel << " " << request.value << "_ "
 		<< "%\clsav321654987";
-	ser.write(str.str());
-	ser.flush();
+	ser_.write(str.str());
+	ser_.flush();
 	response.result = str.str();
 
 	ROS_INFO_STREAM(tag << response.result);
@@ -266,8 +279,8 @@ bool RoboteqDriver::commandservice(roboteq_controller::command_srv::Request &req
 {
 	std::stringstream str;
 	str << "!" << request.userInput << " " << request.channel << " " << request.value << "_";
-	ser.write(str.str());
-	ser.flush();
+	ser_.write(str.str());
+	ser_.flush();
 	response.result = str.str();
 
 	ROS_INFO_STREAM(tag << response.result);
@@ -280,9 +293,9 @@ bool RoboteqDriver::maintenanceservice(roboteq_controller::maintenance_srv::Requ
 	std::stringstream str;
 	str << "%" << request.userInput << " "
 		<< "_";
-	ser.write(str.str());
-	ser.flush();
-	response.result = ser.read(ser.available());
+	ser_.write(str.str());
+	ser_.flush();
+	response.result = ser_.read(ser_.available());
 
 	ROS_INFO_STREAM(response.result);
 	return true;
@@ -295,111 +308,208 @@ void RoboteqDriver::initialize_services(){
 	maintenancesrv_ 	= nh_.advertiseService("maintenance_service", &RoboteqDriver::maintenanceservice, this);
 }
 
+void RoboteqDriver::formQuery(std::string param, 
+							std::map<std::string,std::string> &queries, 
+							std::vector<ros::Publisher> &pubs,
+							std::stringstream &ser_str){
+	nh_priv_.getParam(param, queries);
+	for (std::map<std::string, std::string>::iterator iter = queries.begin(); iter != queries.end(); iter++){
+		ROS_INFO_STREAM(tag << "Publish topic: " << iter->first);
+		pubs.push_back(nh_.advertise<roboteq_controller::channel_values>(iter->first, 100));
+		ser_str << iter->second << "_";
+	}
+	
+}
+
+
+void RoboteqDriver::highFreqCallback(const ros::TimerEvent &){
+	int count = 0;
+	
+	if (ser_.available()){
+
+		std_msgs::String result;
+		result.data = ser_.read(ser_.available());
+
+		serial_read_pub_.publish(result);
+		
+		boost::replace_all(result.data, "\r", "");
+		boost::replace_all(result.data, "+", "");
+
+		std::vector<std::string> fields;
+		std::vector<std::string> fields_H;
+
+		boost::split(fields, result.data, boost::algorithm::is_any_of("D"));
+		boost::split(fields_H, fields[1], boost::algorithm::is_any_of("?"));
+
+		if (fields_H[0] == "H"){
+			for (int i = 0; i < publisherVecH_.size(); ++i){
+				std::vector<std::string> sub_fields_H;
+				boost::split(sub_fields_H, fields_H[i + 1], boost::algorithm::is_any_of(":"));
+				roboteq_controller::channel_values Q1;
+				for (int j = 0; j < sub_fields_H.size(); j++){
+					try{
+						Q1.value.push_back(boost::lexical_cast<int>(sub_fields_H[j]));
+					}
+					catch (const std::exception &e){
+						count++;
+						if (count > 10){
+							ROS_INFO_STREAM(tag << "Garbage data on Serial");
+							//std::cerr << e.what() << '\n';
+						}
+					}
+				}
+				publisherVecH_[i].publish(Q1);
+			}
+		}
+	}
+}
+
+
+void RoboteqDriver::lowFreqCallback(const ros::TimerEvent &){
+	int count = 0;
+	
+	if (ser_.available()){
+
+		std_msgs::String result;
+		result.data = ser_.read(ser_.available());
+
+		serial_read_pub_.publish(result);
+		
+		boost::replace_all(result.data, "\r", "");
+		boost::replace_all(result.data, "+", "");
+
+		std::vector<std::string> fields;
+		std::vector<std::string> fields_H;
+
+		boost::split(fields, result.data, boost::algorithm::is_any_of("D"));
+		boost::split(fields_H, fields[1], boost::algorithm::is_any_of("?"));
+
+		if (fields_H[0] == "L"){
+			for (int i = 0; i < publisherVecL_.size(); ++i){
+				std::vector<std::string> sub_fields_H;
+				boost::split(sub_fields_H, fields_H[i + 1], boost::algorithm::is_any_of(":"));
+				roboteq_controller::channel_values Q1;
+				for (int j = 0; j < sub_fields_H.size(); j++){
+					try{
+						Q1.value.push_back(boost::lexical_cast<int>(sub_fields_H[j]));
+					}
+					catch (const std::exception &e){
+						count++;
+						if (count > 10){
+							ROS_INFO_STREAM(tag << "Garbage data on Serial");
+							//std::cerr << e.what() << '\n';
+						}
+					}
+				}
+				publisherVecL_[i].publish(Q1);
+			}
+		}
+	}
+}
+
+
+void RoboteqDriver::generalFreqCallback(const ros::TimerEvent &){
+	int count = 0;
+	
+	if (ser_.available()){
+
+		std_msgs::String result;
+		result.data = ser_.read(ser_.available());
+
+		serial_read_pub_.publish(result);
+		
+		boost::replace_all(result.data, "\r", "");
+		boost::replace_all(result.data, "+", "");
+
+		std::vector<std::string> fields;
+		std::vector<std::string> fields_H;
+
+		boost::split(fields, result.data, boost::algorithm::is_any_of("D"));
+		boost::split(fields_H, fields[1], boost::algorithm::is_any_of("?"));
+
+		if (fields_H[0] == "G"){
+			for (int i = 0; i < publisherVecG_.size(); ++i){
+				std::vector<std::string> sub_fields_H;
+				boost::split(sub_fields_H, fields_H[i + 1], boost::algorithm::is_any_of(":"));
+				roboteq_controller::channel_values Q1;
+				for (int j = 0; j < sub_fields_H.size(); j++){
+					try{
+						Q1.value.push_back(boost::lexical_cast<int>(sub_fields_H[j]));
+					}
+					catch (const std::exception &e){
+						count++;
+						if (count > 10){
+							ROS_INFO_STREAM(tag << "Garbage data on Serial");
+							//std::cerr << e.what() << '\n';
+						}
+					}
+				}
+				publisherVecG_[i].publish(Q1);
+			}
+		}
+	}
+}
+
+
 void RoboteqDriver::run(){
 	initialize_services();
 	nh_priv_.getParam("frequencyH", frequencyH_);
 	nh_priv_.getParam("frequencyL", frequencyL_);
 	nh_priv_.getParam("frequencyG", frequencyG_);
 
-	assert(frequencyH_ > 0);
-
-	typedef std::string Key;
-	typedef std::string Val;
-	std::map<Key, Val> map_sH;
-	nh_priv_.getParam("queryH", map_sH);
-
-	std::stringstream ss0;
-	std::stringstream ss1;
-	std::stringstream ss2;
-	std::stringstream ss3;
-	std::vector<std::string> KH_vector;
-
-	ss0 << "^echof 1_";
-	ss1 << "# c_/\"DH?\",\"?\"";
-	for (std::map<Key, Val>::iterator iter = map_sH.begin(); iter != map_sH.end(); ++iter){
-		Key KH = iter->first;
-
-		KH_vector.push_back(KH);
-
-		Val VH = iter->second;
-
-		ss1 << VH << "_";
-	}
-	ss1 << "# " << frequencyH_ << "_";
-
-	std::vector<ros::Publisher> publisherVecH;
-	for (int i = 0; i < KH_vector.size(); i++)
-	{
-		publisherVecH.push_back(nh_.advertise<roboteq_controller::channel_values>(KH_vector[i], 100));
+	std::stringstream cmdH{"# c_/\"DH?\",\"?\""};
+	std::map<std::string, std::string> map_sH;
+	if (frequencyH_ > 0){
+		formQuery("queryH", map_sH, publisherVecH_, cmdH);
+		std::stringstream ss;
+		cmdH << "# " << frequencyH_ << "_";
+		ss << "^echof 1_";
+		ser_.write(ss.str());
+		
+		ser_.write(cmdH.str());
+		ser_.flush();
 	}
 
-	ser.write(ss0.str());
-	ser.write(ss1.str());
-	ser.write(ss2.str());
-	ser.write(ss3.str());
+	std::stringstream cmdL{"# c_/\"DL?\",\"?\""};
+	std::map<std::string, std::string> map_sL;
+	if (frequencyL_ > 0){
+		formQuery("queryL", map_sL, publisherVecL_, cmdL);
+		std::stringstream ss;
+		cmdH << "# " << frequencyL_ << "_";
 
-	ser.flush();
-	int count = 0;
-	read_publisher = nh_.advertise<std_msgs::String>("read", 1000);
-	sleep(2);
+		ss << "^echof 1_";
+		ser_.write(ss.str());
+		
+		ser_.write(cmdL.str());
+		ser_.flush();
+	}
 
-	ros::Rate loop_rate(frequencyH_);
-	while (ros::ok())
-	{
+	std::stringstream cmdG{"# c_/\"DG?\",\"?\""};
+	std::map<std::string, std::string> map_sG;
+	if (frequencyG_ > 0){
+		formQuery("queryG", map_sG, publisherVecG_, cmdG);
+		cmdH << "# " << frequencyG_ << "_";
+		
+		std::stringstream ss;
+		ss << "^echof 1_";
+		ser_.write(ss.str());
+		
+		ser_.write(cmdG.str());
+		ser_.flush();
+	}
 
-		ros::spinOnce();
-		if (ser.available())
-		{
+	serial_read_pub_ = nh_.advertise<std_msgs::String>("read", 1000);
+	
+	if (frequencyH_ > 0){
+		timerH_ = nh_.createTimer(ros::Duration(frequencyH_/ 1000.), &RoboteqDriver::highFreqCallback, this);
+	}
 
-			std_msgs::String result;
-			result.data = ser.read(ser.available());
+	if (frequencyL_ > 0){
+		timerL_ = nh_.createTimer(ros::Duration(frequencyH_/ 1000.), &RoboteqDriver::highFreqCallback, this);
+	}
 
-			read_publisher.publish(result);
-			boost::replace_all(result.data, "\r", "");
-			boost::replace_all(result.data, "+", "");
-
-			std::vector<std::string> fields;
-
-			std::vector<std::string> Field9;
-			boost::split(fields, result.data, boost::algorithm::is_any_of("D"));
-
-			std::vector<std::string> fields_H;
-			boost::split(fields_H, fields[1], boost::algorithm::is_any_of("?"));
-
-			if (fields_H[0] == "H")
-			{
-
-				for (int i = 0; i < publisherVecH.size(); ++i)
-				{
-
-					std::vector<std::string> sub_fields_H;
-
-					boost::split(sub_fields_H, fields_H[i + 1], boost::algorithm::is_any_of(":"));
-					roboteq_controller::channel_values Q1;
-
-					for (int j = 0; j < sub_fields_H.size(); j++)
-					{
-
-						try
-						{
-							Q1.value.push_back(boost::lexical_cast<int>(sub_fields_H[j]));
-						}
-						catch (const std::exception &e)
-						{
-							count++;
-							if (count > 10)
-							{
-								ROS_INFO_STREAM(tag << "Garbage data on Serial");
-								//std::cerr << e.what() << '\n';
-							}
-						}
-					}
-
-					publisherVecH[i].publish(Q1);
-				}
-			}
-		}
-		loop_rate.sleep();
+	if (frequencyL_ > 0){
+		timerG_ = nh_.createTimer(ros::Duration(frequencyH_/ 1000.), &RoboteqDriver::highFreqCallback, this);
 	}
 }
 
