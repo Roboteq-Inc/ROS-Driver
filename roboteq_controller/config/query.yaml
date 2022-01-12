@@ -1,4 +1,4 @@
-serial_port : "/dev/ttyACM0"
+serial_port : "/dev/sensors/XDC2460"
 baudrate : 115200
 cmd_vel_topic: "/cmd_vel_roboteq"
 closed_loop: true
