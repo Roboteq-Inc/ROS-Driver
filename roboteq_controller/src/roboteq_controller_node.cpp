@@ -21,6 +21,9 @@
 #include "roboteq_controller/command_srv.h"
 #include "roboteq_controller/maintenance_srv.h"
 
+
+static const std::string tag {"[RoboteQ] "};
+
 class RoboteqDriver
 {
 public:
@@ -92,23 +95,23 @@ RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 	nh_priv_.param("closed_loop", closed_loop_, false);
 	nh_priv_.param("diff_drive_mode", diff_drive_mode_, false);
 	if (close){
-		ROS_WARN("In CLOSED-LOOP mode!!!!");
+		ROS_WARN_STREAM(tag << "In CLOSED-LOOP mode!!!!");
 	}
 	else{
-		ROS_WARN("In OPEN-LOOP mode!!!!");
+		ROS_WARN_STREAM(tag << "In OPEN-LOOP mode!!!!");
 	}
 
 	nh.getParam("wheel_circumference", wheel_circumference_);
 	if (wheel_circumference_ <=0.0 ){
-		ROS_ERROR("Inproper configuration! wheel_circumference need to be greater than zero.");
+		ROS_ERROR_STREAM(tag << "Inproper configuration! wheel_circumference need to be greater than zero.");
 	}
 	nh.getParam("track_width", track_width_);
 	if (track_width_ <=0.0 ){
-		ROS_ERROR("Inproper configuration! track_width need to be greater than zero.");
+		ROS_ERROR_STREAM(tag << "Inproper configuration! track_width need to be greater than zero.");
 	}
 	nh.getParam("max_rpm", max_rpm_);
 	if ( max_rpm_ <=0.0 ){
-		ROS_ERROR("Inproper configuration! max_rpm need to be greater than zero.");
+		ROS_ERROR_STREAM(tag << "Inproper configuration! max_rpm need to be greater than zero.");
 	}
 
 	nh_priv_.param<std::string>("cmd_vel_topic", cmd_vel_topic_, "/cmd_vel");
@@ -128,16 +131,16 @@ RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 		ser.open();
 	}
 	catch (serial::IOException &e){
-		ROS_ERROR_STREAM("Unable to open port " << serial_port_);
-		ROS_INFO_STREAM("Unable to open port" << serial_port_);
+		ROS_ERROR_STREAM(tag << "Unable to open port " << serial_port_);
+		ROS_INFO_STREAM(tag << "Unable to open port" << serial_port_);
 		ros::shutdown();
 	}
 
 	if (ser.isOpen()){
-		ROS_INFO_STREAM("Serial Port " << serial_port_ << " initialized\"");
+		ROS_INFO_STREAM(tag << "Serial Port " << serial_port_ << " initialized");
 	}
 	else{
-		ROS_INFO_STREAM("Serial Port " << serial_port_ << " is not open");
+		ROS_INFO_STREAM(tag << "Serial Port " << serial_port_ << " is not open");
 		ros::shutdown();
 	}
 
@@ -254,7 +257,7 @@ bool RoboteqDriver::configservice(roboteq_controller::config_srv::Request &reque
 	ser.flush();
 	response.result = str.str();
 
-	ROS_INFO_STREAM(response.result);
+	ROS_INFO_STREAM(tag << response.result);
 	return true;
 }
 
@@ -267,7 +270,7 @@ bool RoboteqDriver::commandservice(roboteq_controller::command_srv::Request &req
 	ser.flush();
 	response.result = str.str();
 
-	ROS_INFO_STREAM(response.result);
+	ROS_INFO_STREAM(tag << response.result);
 	return true;
 }
 
@@ -287,9 +290,9 @@ bool RoboteqDriver::maintenanceservice(roboteq_controller::maintenance_srv::Requ
 
 
 void RoboteqDriver::initialize_services(){
-	configsrv_ = nh_.advertiseService("config_service", &RoboteqDriver::configservice, this);
-	commandsrv_ = nh_.advertiseService("command_service", &RoboteqDriver::commandservice, this);
-	maintenancesrv_ = nh_.advertiseService("maintenance_service", &RoboteqDriver::maintenanceservice, this);
+	configsrv_ 			= nh_.advertiseService("config_service", &RoboteqDriver::configservice, this);
+	commandsrv_ 		= nh_.advertiseService("command_service", &RoboteqDriver::commandservice, this);
+	maintenancesrv_ 	= nh_.advertiseService("maintenance_service", &RoboteqDriver::maintenanceservice, this);
 }
 
 void RoboteqDriver::run(){
@@ -386,7 +389,7 @@ void RoboteqDriver::run(){
 							count++;
 							if (count > 10)
 							{
-								ROS_INFO_STREAM("Garbage data on Serial");
+								ROS_INFO_STREAM(tag << "Garbage data on Serial");
 								//std::cerr << e.what() << '\n';
 							}
 						}
