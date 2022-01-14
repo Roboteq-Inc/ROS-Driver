@@ -10,6 +10,7 @@
 #include <iostream>
 #include <sstream>
 #include <typeinfo>
+#include <cassert>
 
 #include <ros/ros.h>
 

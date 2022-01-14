@@ -1,9 +1,10 @@
 <launch>
 
-
-<node name = "roboteq_controller" pkg = "roboteq_controller" type = "roboteq_controller_node" output = "screen" >
-    <rosparam command="load" file="$(find roboteq_controller)/config/query.yaml" />
-</node>
+    <arg name="launch_prefix"         default=""/>
+    <!-- <arg name="launch_prefix"         default="gdb -ex run -args"/> -->
+    <node name = "roboteq_controller" pkg = "roboteq_controller" type = "roboteq_controller_node" output = "screen" launch-prefix="$(arg launch_prefix)" >
+        <rosparam command="load" file="$(find roboteq_controller)/config/query.yaml" />
+    </node>
 
  
 </launch>
