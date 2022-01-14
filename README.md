@@ -42,7 +42,9 @@ queryG:
 
 **FACTS:**
 - It originally worked at a fixed rate of 5 Hz while querying system's states. I did **major** mofifications in this work, making it work at a frequency you want to.
-- They did also specified 3 separate query frequencies in [the config file](config/query.yaml): `frequencyH`, `frequencyL`, and `frequencyL`. However, it does not work at all. I used `ros::Timer` to enable that capability, but haven't tested it fully to fix all the bugs (at the moment). I did tested it at a fixed freq., so be confident to use this package. I will update this repo in the future and get rid of this line at some point.
+- They did also specified 3 separate query frequencies in [the config file](config/query.yaml): `frequencyH`, `frequencyL`, and `frequencyL`. However, it's not the case (or quite complicated). Here in this work, I cleaned all of it and only keep a default `frequency` for all queries. It's sufficient for me, and hopefully for you too.
+- I only used the `driver.launch` for now. So `diff_odom` is kept as original. Later, I might make it works, but probably by modifying the `roboteq_controller_node`, not putting in a separated file to make it a little bit efficent.
+
 
 **Note**: This package is tested on XDC2460. In general, it uses serial communication so feel free to test it on your roboteq device. Please let me know it you do so, whether it works, any issues. Thank you.
 
