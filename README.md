@@ -40,7 +40,7 @@ queryG:
 # firmware_id : ?FID  Users can add queries which do not require channel number under queryG tab. 
 ```
 
-**FACT:**
+**FACTS:**
 - It originally worked at a fixed rate of 5 Hz while querying system's states. I did **major** mofifications in this work, making it work at a frequency you want to.
 - They did also specified 3 separate query frequencies in [the config file](config/query.yaml): `frequencyH`, `frequencyL`, and `frequencyL`. However, it does not work at all. I used `ros::Timer` to enable that capability, but haven't tested it fully to fix all the bugs (at the moment). I did tested it at a fixed freq., so be confident to use this package. I will update this repo in the future and get rid of this line at some point.
 

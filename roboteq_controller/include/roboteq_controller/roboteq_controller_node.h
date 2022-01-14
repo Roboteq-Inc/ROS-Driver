@@ -51,9 +51,9 @@ private:
 	// Pub & Sub
 	ros::Subscriber 		cmd_vel_sub_;
 	ros::Publisher 			serial_read_pub_;
-	std::vector<ros::Publisher> publisherVecH_, publisherVecL_, publisherVecG_;
+	std::vector<ros::Publisher> query_pub_;
 
-	ros::Timer timerH_, timerL_, timerG_;
+	ros::Timer 				timer_pub_;
 
 
 	bool 					closed_loop_,
@@ -67,9 +67,7 @@ private:
 
 	int channel_number_1;
 	int channel_number_2;
-	int frequencyH_;
-	int frequencyL_;
-	int frequencyG_;
+	int frequency_;
 
 
 	void cmdSetup();
@@ -86,8 +84,6 @@ private:
 				std::vector<ros::Publisher> &,
 				std::stringstream &);
 
-	void highFreqCallback	(const ros::TimerEvent &);
-	void lowFreqCallback	(const ros::TimerEvent &);
-	void generalFreqCallback(const ros::TimerEvent &);
+	void queryCallback	(const ros::TimerEvent &);
 
 };
