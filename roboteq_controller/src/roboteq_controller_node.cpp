@@ -263,8 +263,15 @@ void RoboteqDriver::queryCallback(const ros::TimerEvent &){
 	ros::Time current_time = ros::Time::now();
 	if (ser_.available()){
 
+
 		std_msgs::String result;
+
+		std::lock_guard<std::mutex> lock(locker);
+
 		result.data = ser_.read(ser_.available());
+
+		// std::lock_guard<std::mutex> unlock(locker);
+
 
 		serial_read_pub_.publish(result);
 		
@@ -276,16 +283,18 @@ void RoboteqDriver::queryCallback(const ros::TimerEvent &){
 		boost::split(fields, result.data, boost::algorithm::is_any_of("D"));
 		if (fields.size() < 2){
 
-			ROS_ERROR_STREAM(tag << "Empty data:" << result.data);
+			ROS_ERROR_STREAM(tag << "Empty data:{" << result.data << "}");
 		}
 		else if (fields.size() >= 2){
 			std::vector<std::string> fields_H;
 			for (int i = fields.size() - 1; i >= 0; i--){
 				if (fields[i][0] == 'H'){
 					try{
+						fields_H.clear();
 						boost::split(fields_H, fields[i], boost::algorithm::is_any_of("?"));
-						assert( fields_H.size() >= query_pub_.size() + 1);
-						break;
+						if ( fields_H.size() >= query_pub_.size() + 1){
+							break;
+						}
 					}
 					catch (const std::exception &e){
 						std::cerr << e.what() << '\n';

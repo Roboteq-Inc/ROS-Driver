@@ -42,7 +42,7 @@ queryG:
 
 **FACTS:**
 - It originally worked at a fixed rate of 5 Hz while querying system's states. I did **major** mofifications in this work, making it work at a frequency you want to.
-- They did also specified 3 separate query frequencies in [the config file](config/query.yaml): `frequencyH`, `frequencyL`, and `frequencyL`. However, it's not the case (or quite complicated). Here in this work, I cleaned all of it and only keep a default `frequency` for all queries. It's sufficient for me, and hopefully for you too.
+- They did also specified 3 separate query frequencies in [the config file](config/query.yaml): `frequencyH`, `frequencyL`, and `frequencyG`. However, it's not the case (or quite complicated). Here in this work, I cleaned all of it and only keep a default `frequency` for all queries. It's sufficient for me, and hopefully for you too.
 - I only used the `driver.launch` for now. So `diff_odom` is kept as original. Later, I might make it works, but probably by modifying the `roboteq_controller_node`, not putting in a separated file to make it a little bit efficent.
 
 

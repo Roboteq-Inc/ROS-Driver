@@ -11,6 +11,7 @@
 #include <sstream>
 #include <typeinfo>
 #include <cassert>
+#include <mutex>
 
 #include <ros/ros.h>
 
@@ -55,7 +56,6 @@ private:
 
 	ros::Timer 				timer_pub_;
 
-
 	bool 					closed_loop_,
 							diff_drive_mode_;
 
@@ -65,10 +65,10 @@ private:
 
 	std::string 			cmd_vel_topic_;
 
-	int channel_number_1;
-	int channel_number_2;
+	// int channel_number_1;
+	// int channel_number_2;
 	int frequency_;
-
+	std::mutex 				locker;
 
 	void cmdSetup();
 	void cmdVelCallback(const geometry_msgs::Twist &);
