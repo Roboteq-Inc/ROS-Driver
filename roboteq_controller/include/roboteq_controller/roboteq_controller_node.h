@@ -14,6 +14,7 @@
 #include <mutex>
 
 #include <ros/ros.h>
+#include <tf/tf.h>
 
 #include <std_msgs/String.h>
 #include <std_msgs/Empty.h>

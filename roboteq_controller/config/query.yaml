@@ -9,6 +9,7 @@ diff_drive_mode: true
 wheel_circumference: 0.6594 # [m]
 track_width: .6223 # [m]
 max_rpm: 100 # [rpm]
+encoder_resolution: 1024
 
 # For querying data from the motor controller
 frequency: 50   #higher frequency (value is in ms)
