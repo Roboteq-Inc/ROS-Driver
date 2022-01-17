@@ -12,6 +12,7 @@
 #include <typeinfo>
 #include <cassert>
 #include <mutex>
+#include <math.h>
 
 #include <ros/ros.h>
 #include <tf/tf.h>

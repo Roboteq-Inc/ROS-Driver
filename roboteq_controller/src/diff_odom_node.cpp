@@ -32,11 +32,14 @@ RoboteqOdom::RoboteqOdom(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 		ROS_ERROR_STREAM(tag << "Inproper configuration! max_rpm need to be greater than zero.");
 	}
 
-	max_angular_vel_ = max_rpm_/60. *2 * std::M_PI;
+	max_angular_vel_ = max_rpm_/60. *2 * M_PI;
 
 	encoder_sub_	= nh_.subscribe("encoder_count", 10, &RoboteqOdom::encoderCallback, this);
   	odom_pub_ 		= nh_.advertise<nav_msgs::Odometry>("odom", 50);
 	
+	odom_.child_frame_id = child_frame_;
+	odom_.header.frame_id= odom_frame_;
+
 	current_time_ = ros::Time::now();
   	last_time_ = ros::Time::now();
 }
@@ -56,12 +59,14 @@ void RoboteqOdom::encoderCallback(const roboteq_controller::channel_values& tick
 	
 	ros::Duration duration = tick.header.stamp - odom_.header.stamp;
 	double dt		= duration.sec + (double)duration.nsec/1.0e-9;
-
-	double vel_left = 2* std::M_PI * (encoder_left_ - encoder_left_prev_)/encoder_resolution_/dt;
-	double vel_right= 2* std::M_PI * (encoder_right_- encoder_right_prev_)/encoder_resolution_/dt;
+	
+	// Linear velocity of two wheels
+	double vel_left = 2* M_PI * (encoder_left_ - encoder_left_prev_)/encoder_resolution_/dt;
+	double vel_right= 2* M_PI * (encoder_right_- encoder_right_prev_)/encoder_resolution_/dt;
 
 	assert (vel_left <= max_angular_vel_ && vel_right <= max_angular_vel_);
 
+	// Linear velocity and angular velocity of robot
 	double velocity = wheel_circumference_/4 * (vel_left + vel_right);
 	double angular  = wheel_circumference_/track_width_/2 *(vel_right - vel_left);
 	
@@ -74,49 +79,48 @@ void RoboteqOdom::encoderCallback(const roboteq_controller::channel_values& tick
     double roll, pitch, yaw;
     m.getRPY(roll, pitch, yaw);
 
-	velocity_x		= velocity * cos(odom_.orientation)
-	geometry_msgs::Quaternion odom_quat ;
+	// Velocity in x and y directions
+	double velocity_x		= velocity * cos(yaw);
+	double velocity_y 		= velocity * sin(yaw);
 
-	odom_quat.x = 0.0;
-	odom_quat.y = 0.0;
-	odom_quat.z = 0.0;
+	// Update robot's pose
+	tf2::Quaternion q_rot;
+	q_rot.setRPY(roll, pitch, yaw + angular * dt);
 
-	odom_quat.z = sin( theta_final / 2 );	
-	odom_quat.w = cos( theta_final / 2 );
 
-	//first, we'll publish the transform over tf
-	geometry_msgs::TransformStamped odom_trans;
-	odom_trans.header.stamp = now;
-	odom_trans.header.frame_id = "odom";
-	odom_trans.child_frame_id = "base_footprint";
+	// geometry_msgs::Quaternion odom_quat ;
+	// //first, we'll publish the transform over tf
+	// geometry_msgs::TransformStamped odom_trans;
+	// odom_trans.header.stamp = now;
+	// odom_trans.header.frame_id = "odom";
+	// odom_trans.child_frame_id = "base_footprint";
 
-	odom_trans.transform.translation.x = x_final;
-	odom_trans.transform.translation.y = y_final;
-	odom_trans.transform.translation.z = 0.0;
-	odom_trans.transform.rotation = odom_quat;
+	// odom_trans.transform.translation.x = x_final;
+	// odom_trans.transform.translation.y = y_final;
+	// odom_trans.transform.translation.z = 0.0;
+	// odom_trans.transform.rotation = odom_quat;
 
-	//send the transform
-	odom_broadcaster.sendTransform(odom_trans);
+	// //send the transform
+	// odom_broadcaster.sendTransform(odom_trans);
 	
-	//next, we'll publish the odometry message over ROS
-	nav_msgs::Odometry odom;
-	odom.header.stamp = now;
-	odom.header.frame_id = "odom";
-
+	//Publish the odometry message over ROS
+	
+	odom_.header.stamp 			= tick.header.stamp;
 	//set the position
-	odom.pose.pose.position.x = x_final;
-	odom.pose.pose.position.y = y_final;
-	odom.pose.pose.position.z = 0.0;
-	odom.pose.pose.orientation = odom_quat;
+	odom_.pose.pose.position.x 	+= velocity_x * dt;
+	odom_.pose.pose.position.y 	+= velocity_y * dt;
+	odom_.pose.pose.orientation.x = q_rot.getX();
+	odom_.pose.pose.orientation.y = q_rot.getY();
+	odom_.pose.pose.orientation.z = q_rot.getZ();
+	odom_.pose.pose.orientation.w = q_rot.getW();
 
 	//set the velocity
-	odom.child_frame_id = "base_footprint";
-	odom.twist.twist.linear.x = dx;
-	odom.twist.twist.linear.y = 0;
-	odom.twist.twist.angular.z = dr;
+	odom_.twist.twist.linear.x = velocity_x;
+	odom_.twist.twist.linear.y = velocity_y;
+	odom_.twist.twist.angular.z = angular;
 
 	//publish the message
-	odom_pub_.publish(odom);
+	odom_pub_.publish(odom_);
 }
 
 
