@@ -8,7 +8,7 @@ endif()
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
+  set(CMAKE_CXX_STANDARD 11)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -25,16 +25,18 @@ find_package(std_msgs REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(roboteq_interfaces REQUIRED)
+find_package(serial REQUIRED)
 
 
 include_directories(include)
+include_directories(/tmp/usr/local/include/)
 
 set(node_plugins "")
 
 
 
 add_executable(roboteq_controller_node src/roboteq_controller_node.cpp)
-ament_target_dependencies(roboteq_controller_node rclcpp std_msgs roboteq_interfaces)
+ament_target_dependencies(roboteq_controller_node rclcpp std_msgs roboteq_interfaces serial)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

@@ -3,7 +3,7 @@
 static const std::string tag {"[RoboteQ] "};
 
 
-RoboteqDriver::RoboteqDriver(const rclcpp::NodeOptions &options): Node("roboteq_controller"),
+RoboteqDriver::RoboteqDriver(const rclcpp::NodeOptions &options): Node("roboteq_controller", options),
 	wheel_circumference_(0.),
 	track_width_(0.),
 	max_rpm_(0.),
@@ -13,7 +13,7 @@ RoboteqDriver::RoboteqDriver(const rclcpp::NodeOptions &options): Node("roboteq_
 	closed_loop_(false),
 	diff_drive_mode_(false),
 	cmd_vel_topic_("/cmd_vel"){
-	
+	RCLCPP_INFO(get_logger(), "Creating");
 	get_parameter("serial_port", serial_port_);
 	get_parameter("baudrate", baudrate_);
 
@@ -41,10 +41,14 @@ RoboteqDriver::RoboteqDriver(const rclcpp::NodeOptions &options): Node("roboteq_
 
 	get_parameter("cmd_vel_topic", cmd_vel_topic_);
 	if (diff_drive_mode_){
-		cmd_vel_sub_ = nh_.subscribe(cmd_vel_topic_, 10, &RoboteqDriver::cmdVelCallback, this);
+		cmd_vel_sub_ = create_subscription<geometry_msgs::msg::Twist>(
+										cmd_vel_topic_, rclcpp::SystemDefaultsQoS(),
+										std::bind(&RoboteqDriver::cmdVelCallback, this, std::placeholders::_1));
 	}
 	else{
-		cmd_vel_sub_ = nh_.subscribe(cmd_vel_topic_, 10, &RoboteqDriver::powerCmdCallback, this);
+		cmd_vel_sub_ = create_subscription<geometry_msgs::msg::Twist>(
+										cmd_vel_topic_, rclcpp::SystemDefaultsQoS(),
+										std::bind(&RoboteqDriver::powerCmdCallback, this, std::placeholders::_1));
 	}
 
 	// Initiate communication to serial port
@@ -58,7 +62,7 @@ RoboteqDriver::RoboteqDriver(const rclcpp::NodeOptions &options): Node("roboteq_
 	catch (serial::IOException &e){
 		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Unable to open port " << serial_port_);
 		RCLCPP_INFO_STREAM(this->get_logger(),tag << "Unable to open port" << serial_port_);
-		ros::shutdown();
+		rclcpp::shutdown();
 	}
 
 	if (ser_.isOpen()){
@@ -66,7 +70,7 @@ RoboteqDriver::RoboteqDriver(const rclcpp::NodeOptions &options): Node("roboteq_
 	}
 	else{
 		RCLCPP_INFO_STREAM(this->get_logger(),tag << "Serial Port " << serial_port_ << " is not open");
-		ros::shutdown();
+		rclcpp::shutdown();
 	}
 
 	cmdSetup();
@@ -117,13 +121,13 @@ void RoboteqDriver::cmdSetup(){
 
 void RoboteqDriver::run(){
 	initializeServices();
-	nh_priv_.getParam("frequency", frequency_);
+	get_parameter("frequency", frequency_);
 
 	if (frequency_ > 0){
 		std::stringstream ss0, ss1;
 		ss0 << "^echof 1_";
 		ss1 << "# c_/\"DH?\",\"?\"";
-		std::map<std::string, std::string> query_map;
+		std::vector<std::string> query_map;
 		formQuery("query", query_map, query_pub_, ss1);
 
 		ss1 << "# " << frequency_ << "_";
@@ -133,18 +137,16 @@ void RoboteqDriver::run(){
 		ser_.flush();
 	}
 	
-    serial_read_pub_ = this->create_publisher<std_msgs::msg::String>("read", 100);
+    serial_read_pub_ = create_publisher<std_msgs::msg::String>("read", rclcpp::SystemDefaultsQoS());
 
-	
 	if (frequency_ > 0){
-		timer_pub_ = this->create_wall_timer(
-			rclcpp::Duration(frequency_/ 1000.), 
-			std::bind(&RoboteqDriver::queryCallback, this));
+		std::chrono::duration<int, std::milli> dt (1000/frequency_);
+		timer_pub_ = create_wall_timer(dt, std::bind(&RoboteqDriver::queryCallback, this) );
 	}
 }
 
 
-void RoboteqDriver::powerCmdCallback(const geometry_msgs::Twist &msg){
+void RoboteqDriver::powerCmdCallback(const geometry_msgs::msg::Twist &msg){
 	std::stringstream cmd_str;
 	if (closed_loop_){
 		cmd_str << "!S 1"
@@ -165,7 +167,7 @@ void RoboteqDriver::powerCmdCallback(const geometry_msgs::Twist &msg){
 }
 
 
-void RoboteqDriver::cmdVelCallback(const geometry_msgs::Twist &msg){
+void RoboteqDriver::cmdVelCallback(const geometry_msgs::msg::Twist &msg){
 	// wheel speed (m/s)
 	float right_speed = msg.linear.x + track_width_ * msg.angular.z / 2.0;
 	float left_speed  = msg.linear.x - track_width_ * msg.angular.z / 2.0;
@@ -250,27 +252,26 @@ void RoboteqDriver::cmdVelCallback(const geometry_msgs::Twist &msg){
 // }
 
 void RoboteqDriver::formQuery(std::string param, 
-							std::map<std::string,std::string> &queries, 
-							std::vector<ros::Publisher> &pubs,
+							std::vector<std::string> &queries, 
+							std::vector<rclcpp::Publisher<roboteq_interfaces::msg::ChannelValues>::SharedPtr> &pubs,
 							std::stringstream &ser_str){
-	nh_priv_.getParam(param, queries);
-	for (std::map<std::string, std::string>::iterator iter = queries.begin(); iter != queries.end(); iter++){
-		RCLCPP_INFO_STREAM(this->get_logger(),tag << "Publish topic: " << iter->first);
-		pubs.push_back(nh_.advertise<roboteq_interfaces::msg::ChannelValues>(iter->first, 100));
+	get_parameter(param, queries);
+	for (size_t i = 0; i < queries.size(); i++){
+		RCLCPP_INFO_STREAM(this->get_logger(),tag << "Publish topic: " << queries[i]);
+		pubs.push_back(create_publisher<roboteq_interfaces::msg::ChannelValues>(queries[i], 100));
 
-		std::string cmd = iter->second;
-		ser_str << cmd << "_";
+		ser_str << queries[i] << "_";
 	}
 }
 
 
-void RoboteqDriver::queryCallback(const ros::TimerEvent &){
-	int count = 0;
-	ros::Time current_time = ros::Time::now();
+void RoboteqDriver::queryCallback(){
+	
+	auto current_time = this->now();
 	if (ser_.available()){
 
 
-		std_msgs::String result;
+		std_msgs::msg::String result;
 
 		std::lock_guard<std::mutex> lock(locker);
 
@@ -279,7 +280,7 @@ void RoboteqDriver::queryCallback(const ros::TimerEvent &){
 		// std::lock_guard<std::mutex> unlock(locker);
 
 
-		serial_read_pub_.publish(result);
+		serial_read_pub_->publish(result);
 		
 		boost::replace_all(result.data, "\r", "");
 		boost::replace_all(result.data, "+", "");
@@ -327,7 +328,7 @@ void RoboteqDriver::queryCallback(const ros::TimerEvent &){
 							std::cerr << e.what() << '\n';
 						}
 					}
-					query_pub_[i].publish(msg);
+					query_pub_[i]->publish(msg);
 				}
 			}
 		}
