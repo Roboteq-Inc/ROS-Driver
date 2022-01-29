@@ -3,40 +3,43 @@
 static const std::string tag {"[RoboteQ] "};
 
 
-RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
-	nh_(nh),
-	nh_priv_(nh_priv),
+RoboteqDriver::RoboteqDriver(const rclcpp::NodeOptions &options): Node("roboteq_controller"),
 	wheel_circumference_(0.),
 	track_width_(0.),
 	max_rpm_(0.),
-	frequency_(0){
+	frequency_(0),
+	serial_port_("dev/ttyUSB0"),
+	baudrate_(112500),
+	closed_loop_(false),
+	diff_drive_mode_(false),
+	cmd_vel_topic_("/cmd_vel"){
 	
-	nh_priv.param<std::string>("serial_port", serial_port_, "dev/ttyUSB0");
-	nh_priv.param("baudrate", baudrate_, 112500);
+	get_parameter("serial_port", serial_port_);
+	get_parameter("baudrate", baudrate_);
 
-	nh_priv_.param("closed_loop", closed_loop_, false);
-	nh_priv_.param("diff_drive_mode", diff_drive_mode_, false);
+	get_parameter("closed_loop", closed_loop_);
+	get_parameter("diff_drive_mode", diff_drive_mode_);
 	if (close){
-		ROS_WARN_STREAM(tag << "In CLOSED-LOOP mode!!!!");
+		RCLCPP_WARN_STREAM(this->get_logger(),tag << "In CLOSED-LOOP mode!!!!");
 	}
 	else{
-		ROS_WARN_STREAM(tag << "In OPEN-LOOP mode!!!!");
+		RCLCPP_WARN_STREAM(this->get_logger(),tag << "In OPEN-LOOP mode!!!!");
 	}
 
-	nh_priv_.getParam("wheel_circumference", wheel_circumference_);
+	get_parameter("wheel_circumference", wheel_circumference_);
 	if (wheel_circumference_ <=0.0 ){
-		ROS_ERROR_STREAM(tag << "Inproper configuration! wheel_circumference need to be greater than zero.");
+		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Inproper configuration! wheel_circumference need to be greater than zero.");
 	}
-	nh_priv.getParam("track_width", track_width_);
+	get_parameter("track_width", track_width_);
 	if (track_width_ <=0.0 ){
-		ROS_ERROR_STREAM(tag << "Inproper configuration! track_width need to be greater than zero.");
+		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Inproper configuration! track_width need to be greater than zero.");
 	}
-	nh_priv.getParam("max_rpm", max_rpm_);
+	get_parameter("max_rpm", max_rpm_);
 	if ( max_rpm_ <=0.0 ){
-		ROS_ERROR_STREAM(tag << "Inproper configuration! max_rpm need to be greater than zero.");
+		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Inproper configuration! max_rpm need to be greater than zero.");
 	}
 
-	nh_priv_.param<std::string>("cmd_vel_topic", cmd_vel_topic_, "/cmd_vel");
+	get_parameter("cmd_vel_topic", cmd_vel_topic_);
 	if (diff_drive_mode_){
 		cmd_vel_sub_ = nh_.subscribe(cmd_vel_topic_, 10, &RoboteqDriver::cmdVelCallback, this);
 	}
@@ -53,16 +56,16 @@ RoboteqDriver::RoboteqDriver(ros::NodeHandle nh, ros::NodeHandle nh_priv):
 		ser_.open();
 	}
 	catch (serial::IOException &e){
-		ROS_ERROR_STREAM(tag << "Unable to open port " << serial_port_);
-		ROS_INFO_STREAM(tag << "Unable to open port" << serial_port_);
+		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Unable to open port " << serial_port_);
+		RCLCPP_INFO_STREAM(this->get_logger(),tag << "Unable to open port" << serial_port_);
 		ros::shutdown();
 	}
 
 	if (ser_.isOpen()){
-		ROS_INFO_STREAM(tag << "Serial Port " << serial_port_ << " initialized");
+		RCLCPP_INFO_STREAM(this->get_logger(),tag << "Serial Port " << serial_port_ << " initialized");
 	}
 	else{
-		ROS_INFO_STREAM(tag << "Serial Port " << serial_port_ << " is not open");
+		RCLCPP_INFO_STREAM(this->get_logger(),tag << "Serial Port " << serial_port_ << " is not open");
 		ros::shutdown();
 	}
 
@@ -130,10 +133,13 @@ void RoboteqDriver::run(){
 		ser_.flush();
 	}
 	
-	serial_read_pub_ = nh_.advertise<std_msgs::String>("read", 1000);
+    serial_read_pub_ = this->create_publisher<std_msgs::msg::String>("read", 100);
+
 	
 	if (frequency_ > 0){
-		timer_pub_ = nh_.createTimer(ros::Duration(frequency_/ 1000.), &RoboteqDriver::queryCallback, this);
+		timer_pub_ = this->create_wall_timer(
+			rclcpp::Duration(frequency_/ 1000.), 
+			std::bind(&RoboteqDriver::queryCallback, this));
 	}
 }
 
@@ -154,8 +160,8 @@ void RoboteqDriver::powerCmdCallback(const geometry_msgs::Twist &msg){
 	}
 	ser_.write(cmd_str.str());
 	ser_.flush();
-	ROS_INFO("[ROBOTEQ] left: %9.3f right: %9.3f", msg.linear.x, msg.angular.z);
-	// ROS_INFO_STREAM(cmd_str.str());
+	RCLCPP_INFO(this->get_logger(),"[ROBOTEQ] left: %9.3f right: %9.3f", msg.linear.x, msg.angular.z);
+	// RCLCPP_INFO_STREAM(this->get_logger(),cmd_str.str());
 }
 
 
@@ -164,14 +170,14 @@ void RoboteqDriver::cmdVelCallback(const geometry_msgs::Twist &msg){
 	float right_speed = msg.linear.x + track_width_ * msg.angular.z / 2.0;
 	float left_speed  = msg.linear.x - track_width_ * msg.angular.z / 2.0;
 	
-	// ROS_INFO("[ROBOTEQ] left: %.3f right: %.3f", left_speed, right_speed);
+	// RCLCPP_INFO(this->get_logger(),("[ROBOTEQ] left: %.3f right: %.3f", left_speed, right_speed);
 	std::stringstream cmd_str;
 	if (!closed_loop_){
 		// motor power (scale 0-1000)
 		float right_power = right_speed *1000.0 *60.0/ (wheel_circumference_ * max_rpm_);
 		float left_power  = left_speed  *1000.0 *60.0/ (wheel_circumference_ * max_rpm_);
 	
-		ROS_INFO("[ROBOTEQ] left: %9d right: %9d", (int)left_power, (int)right_power);
+		RCLCPP_INFO(this->get_logger(),"[ROBOTEQ] left: %9d right: %9d", (int)left_power, (int)right_power);
 		
 		cmd_str << "!G 1"
 				<< " " << (int)left_power << "_"
@@ -183,7 +189,7 @@ void RoboteqDriver::cmdVelCallback(const geometry_msgs::Twist &msg){
 		int32_t right_rpm = right_speed *60.0 / wheel_circumference_;
 		int32_t left_rpm  = left_speed  *60.0 / wheel_circumference_;
 
-		ROS_INFO("[ROBOTEQ] left: %9d right: %9d", left_rpm, right_rpm);
+		RCLCPP_INFO(this->get_logger(),"[ROBOTEQ] left: %9d right: %9d", left_rpm, right_rpm);
 		cmd_str << "!S 1"
 				<< " " << left_rpm << "_"
 				<< "!S 2"
@@ -192,56 +198,56 @@ void RoboteqDriver::cmdVelCallback(const geometry_msgs::Twist &msg){
 
 	ser_.write(cmd_str.str());
 	ser_.flush();
-	// ROS_INFO_STREAM(cmd_str.str());
+	// RCLCPP_INFO_STREAM(this->get_logger(),cmd_str.str());
 }
 
 
-bool RoboteqDriver::configService(roboteq_controller::config_srv::Request &request, 
-									roboteq_controller::config_srv::Response &response){
-	std::stringstream str;
-	str << "^" << request.userInput << " " << request.channel << " " << request.value << "_ "
-		<< "%\clsav321654987";
-	ser_.write(str.str());
-	ser_.flush();
-	response.result = str.str();
+// bool RoboteqDriver::configService(roboteq_controller::config_srv::Request &request, 
+// 									roboteq_controller::config_srv::Response &response){
+// 	std::stringstream str;
+// 	str << "^" << request.userInput << " " << request.channel << " " << request.value << "_ "
+// 		<< "%\clsav321654987";
+// 	ser_.write(str.str());
+// 	ser_.flush();
+// 	response.result = str.str();
 
-	ROS_INFO_STREAM(tag << response.result);
-	return true;
-}
-
-
-bool RoboteqDriver::commandService(roboteq_controller::command_srv::Request &request, roboteq_controller::command_srv::Response &response)
-{
-	std::stringstream str;
-	str << "!" << request.userInput << " " << request.channel << " " << request.value << "_";
-	ser_.write(str.str());
-	ser_.flush();
-	response.result = str.str();
-
-	ROS_INFO_STREAM(tag << response.result);
-	return true;
-}
+// 	RCLCPP_INFO_STREAM(this->get_logger(),tag << response.result);
+// 	return true;
+// }
 
 
-bool RoboteqDriver::maintenanceService(roboteq_controller::maintenance_srv::Request &request, roboteq_controller::maintenance_srv::Response &response)
-{
-	std::stringstream str;
-	str << "%" << request.userInput << " "
-		<< "_";
-	ser_.write(str.str());
-	ser_.flush();
-	response.result = ser_.read(ser_.available());
+// bool RoboteqDriver::commandService(roboteq_controller::command_srv::Request &request, roboteq_controller::command_srv::Response &response)
+// {
+// 	std::stringstream str;
+// 	str << "!" << request.userInput << " " << request.channel << " " << request.value << "_";
+// 	ser_.write(str.str());
+// 	ser_.flush();
+// 	response.result = str.str();
 
-	ROS_INFO_STREAM(response.result);
-	return true;
-}
+// 	RCLCPP_INFO_STREAM(this->get_logger(),tag << response.result);
+// 	return true;
+// }
 
 
-void RoboteqDriver::initializeServices(){
-	configsrv_ 			= nh_.advertiseService("config_service", &RoboteqDriver::configService, this);
-	commandsrv_ 		= nh_.advertiseService("command_service", &RoboteqDriver::commandService, this);
-	maintenancesrv_ 	= nh_.advertiseService("maintenance_service", &RoboteqDriver::maintenanceService, this);
-}
+// bool RoboteqDriver::maintenanceService(roboteq_controller::maintenance_srv::Request &request, roboteq_controller::maintenance_srv::Response &response)
+// {
+// 	std::stringstream str;
+// 	str << "%" << request.userInput << " "
+// 		<< "_";
+// 	ser_.write(str.str());
+// 	ser_.flush();
+// 	response.result = ser_.read(ser_.available());
+
+// 	RCLCPP_INFO_STREAM(this->get_logger(),response.result);
+// 	return true;
+// }
+
+
+// void RoboteqDriver::initializeServices(){
+// 	configsrv_ 			= nh_.advertiseService("config_service", &RoboteqDriver::configService, this);
+// 	commandsrv_ 		= nh_.advertiseService("command_service", &RoboteqDriver::commandService, this);
+// 	maintenancesrv_ 	= nh_.advertiseService("maintenance_service", &RoboteqDriver::maintenanceService, this);
+// }
 
 void RoboteqDriver::formQuery(std::string param, 
 							std::map<std::string,std::string> &queries, 
@@ -249,8 +255,8 @@ void RoboteqDriver::formQuery(std::string param,
 							std::stringstream &ser_str){
 	nh_priv_.getParam(param, queries);
 	for (std::map<std::string, std::string>::iterator iter = queries.begin(); iter != queries.end(); iter++){
-		ROS_INFO_STREAM(tag << "Publish topic: " << iter->first);
-		pubs.push_back(nh_.advertise<roboteq_controller::channel_values>(iter->first, 100));
+		RCLCPP_INFO_STREAM(this->get_logger(),tag << "Publish topic: " << iter->first);
+		pubs.push_back(nh_.advertise<roboteq_interfaces::msg::ChannelValues>(iter->first, 100));
 
 		std::string cmd = iter->second;
 		ser_str << cmd << "_";
@@ -283,7 +289,7 @@ void RoboteqDriver::queryCallback(const ros::TimerEvent &){
 		boost::split(fields, result.data, boost::algorithm::is_any_of("D"));
 		if (fields.size() < 2){
 
-			ROS_ERROR_STREAM(tag << "Empty data:{" << result.data << "}");
+			RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Empty data:{" << result.data << "}");
 		}
 		else if (fields.size() >= 2){
 			std::vector<std::string> fields_H;
@@ -298,7 +304,7 @@ void RoboteqDriver::queryCallback(const ros::TimerEvent &){
 					}
 					catch (const std::exception &e){
 						std::cerr << e.what() << '\n';
-						ROS_ERROR_STREAM(tag << "Finding query output in :" << fields[i]);
+						RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Finding query output in :" << fields[i]);
 						continue;
 					}
 				}
@@ -309,7 +315,7 @@ void RoboteqDriver::queryCallback(const ros::TimerEvent &){
 					std::vector<std::string> sub_fields_H;
 					boost::split(sub_fields_H, fields_H[i + 1], boost::algorithm::is_any_of(":"));
 					
-					roboteq_controller::channel_values msg;
+					roboteq_interfaces::msg::ChannelValues msg;
 					msg.header.stamp = current_time;
 
 					for (int j = 0; j < sub_fields_H.size(); j++){
@@ -317,7 +323,7 @@ void RoboteqDriver::queryCallback(const ros::TimerEvent &){
 							msg.value.push_back(boost::lexical_cast<int>(sub_fields_H[j]));
 						}
 						catch (const std::exception &e){
-							ROS_ERROR_STREAM(tag << "Garbage data on Serial");
+							RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Garbage data on Serial");
 							std::cerr << e.what() << '\n';
 						}
 					}
@@ -326,21 +332,17 @@ void RoboteqDriver::queryCallback(const ros::TimerEvent &){
 			}
 		}
 		else{
-			ROS_WARN_STREAM(tag << "Unknown:{" << result.data << "}");
+			RCLCPP_WARN_STREAM(this->get_logger(),tag << "Unknown:{" << result.data << "}");
 		}
 	}
 }
 
 
-int main(int argc, char **argv)
+int main(int argc, char * argv[])
 {
-	ros::init(argc, argv, "roboteq_controller");
-	ros::NodeHandle nh;
-	ros::NodeHandle nh_priv("~");
-	RoboteqDriver driver(nh, nh_priv);
-	ros::MultiThreadedSpinner spinner(4);
-	spinner.spin();
-	ros::waitForShutdown();
-
-	return 0;
+  rclcpp::init(argc, argv);
+  rclcpp::spin(std::make_shared<RoboteqDriver>());
+  rclcpp::shutdown();
+  return 0;
 }
+
