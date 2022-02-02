@@ -16,9 +16,10 @@
 #include <chrono>
 #include <memory>
 #include <vector>
+#include <map>
+
 #include <serial/serial.h>
 #include "rclcpp/rclcpp.hpp"
-
 #include "std_msgs/msg/string.hpp"
 #include "std_msgs/msg/empty.hpp"
 #include "geometry_msgs/msg/twist.hpp"
@@ -71,10 +72,16 @@ private:
 
 	std::string 			cmd_vel_topic_;
 
+	// queries
+	std::map<std::string, std::string>	queries_;
+
 	// int channel_number_1;
 	// int channel_number_2;
 	int frequency_;
 	std::mutex 				locker;
+
+	void declare();
+	void init();
 
 	void cmdSetup();
 	void cmdVelCallback(const geometry_msgs::msg::Twist &);
@@ -84,11 +91,6 @@ private:
 	// bool maintenanceService(roboteq_interfaces::maintenance_srv::Request &, roboteq_interfaces::maintenance_srv::Response &);
 	void initializeServices();
 	void run();
-
-	void formQuery(std::string, 
-				std::vector<std::string> &, 
-				std::vector<rclcpp::Publisher<roboteq_interfaces::msg::ChannelValues>::SharedPtr> &,
-				std::stringstream &);
 
 	void queryCallback();
 

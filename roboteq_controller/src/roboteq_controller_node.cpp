@@ -1,6 +1,78 @@
 #include "roboteq_controller/roboteq_controller_node.h"
 
-static const std::string tag {"[RoboteQ] "};
+// static const std::string tag {"[RoboteQ] "};
+static const std::string tag {""};
+
+void RoboteqDriver::declare(){
+	declare_parameter<std::string>("serial_port", "dev/ttyUSB0");
+	declare_parameter("baudrate", 112500);
+	declare_parameter("closed_loop", false);
+	declare_parameter("diff_drive_mode", false);
+	declare_parameter("wheel_circumference", 0.0);
+	declare_parameter("track_width", 0.0);
+	declare_parameter("max_rpm", 0.0);
+	declare_parameter<int>("frequency", 0);
+	declare_parameter<std::string>("cmd_vel_topic", "cmd_vel");
+}
+
+void RoboteqDriver::init(){
+	RCLCPP_INFO(get_logger(), "Creating");
+	get_parameter("frequency", frequency_);
+
+	get_parameter("serial_port", serial_port_);
+	get_parameter("baudrate", baudrate_);
+
+	get_parameter("closed_loop", closed_loop_);
+	get_parameter("diff_drive_mode", diff_drive_mode_);
+	
+	get_parameter("wheel_circumference", wheel_circumference_);
+	get_parameter("track_width", track_width_);
+	get_parameter("max_rpm", max_rpm_);
+	get_parameter("cmd_vel_topic", cmd_vel_topic_);
+
+	RCLCPP_INFO_STREAM(this->get_logger(),tag << "cmd_vel:" << cmd_vel_topic_);
+
+	if (closed_loop_){
+		RCLCPP_INFO_STREAM(this->get_logger(),tag << "In CLOSED-LOOP mode!!!! serial port:" << serial_port_);
+	}
+	else{
+		RCLCPP_INFO_STREAM(this->get_logger(),tag << "In OPEN-LOOP mode!!!!");
+	}
+
+	if (wheel_circumference_ <=0.0 ){
+		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Inproper configuration! wheel_circumference need to be greater than zero.");
+	}
+	if (track_width_ <=0.0 ){
+		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Inproper configuration! track_width need to be greater than zero.");
+	}
+	if ( max_rpm_ <=0.0 ){
+		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Inproper configuration! max_rpm need to be greater than zero.");
+	}
+
+	if (frequency_ <= 0.0){
+		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Inproper configuration! \'frequency\' need to be greater than zero.");
+	}
+
+	// Nested params for queries
+	// get_parameter();
+
+	auto param_interface = this->get_node_parameters_interface();
+	std::map<std::string, rclcpp::ParameterValue> params = param_interface->get_parameter_overrides();
+
+	RCLCPP_INFO_STREAM(this->get_logger(), tag << "queries:" );
+
+	for (auto iter = params.begin(); iter != params.end(); iter++){
+		std::size_t pos = iter->first.find("query");
+		if (pos != std::string::npos && 
+			iter->second.get_type() == rclcpp::ParameterType::PARAMETER_STRING){
+  			std::string topic = iter->first.substr (pos+ 6);    
+			auto query = iter->second.to_value_msg().string_value;
+			
+			queries_[topic] =  query;
+			RCLCPP_INFO(this->get_logger(), "%15s : %s",  topic.c_str(), query.c_str() );
+		}
+	}
+}
 
 
 RoboteqDriver::RoboteqDriver(const rclcpp::NodeOptions &options): Node("roboteq_controller", options),
@@ -12,34 +84,11 @@ RoboteqDriver::RoboteqDriver(const rclcpp::NodeOptions &options): Node("roboteq_
 	baudrate_(112500),
 	closed_loop_(false),
 	diff_drive_mode_(false),
-	cmd_vel_topic_("/cmd_vel"){
-	RCLCPP_INFO(get_logger(), "Creating");
-	get_parameter("serial_port", serial_port_);
-	get_parameter("baudrate", baudrate_);
+	cmd_vel_topic_("cmd_vel"){
+	
+	declare();
+	init();
 
-	get_parameter("closed_loop", closed_loop_);
-	get_parameter("diff_drive_mode", diff_drive_mode_);
-	if (close){
-		RCLCPP_WARN_STREAM(this->get_logger(),tag << "In CLOSED-LOOP mode!!!!");
-	}
-	else{
-		RCLCPP_WARN_STREAM(this->get_logger(),tag << "In OPEN-LOOP mode!!!!");
-	}
-
-	get_parameter("wheel_circumference", wheel_circumference_);
-	if (wheel_circumference_ <=0.0 ){
-		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Inproper configuration! wheel_circumference need to be greater than zero.");
-	}
-	get_parameter("track_width", track_width_);
-	if (track_width_ <=0.0 ){
-		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Inproper configuration! track_width need to be greater than zero.");
-	}
-	get_parameter("max_rpm", max_rpm_);
-	if ( max_rpm_ <=0.0 ){
-		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Inproper configuration! max_rpm need to be greater than zero.");
-	}
-
-	get_parameter("cmd_vel_topic", cmd_vel_topic_);
 	if (diff_drive_mode_){
 		cmd_vel_sub_ = create_subscription<geometry_msgs::msg::Twist>(
 										cmd_vel_topic_, rclcpp::SystemDefaultsQoS(),
@@ -52,7 +101,7 @@ RoboteqDriver::RoboteqDriver(const rclcpp::NodeOptions &options): Node("roboteq_
 	}
 
 	// Initiate communication to serial port
-	try{	
+	try{
 		ser_.setPort(serial_port_);
 		ser_.setBaudrate(baudrate_);
 		serial::Timeout timeout = serial::Timeout::simpleTimeout(1000);
@@ -61,7 +110,6 @@ RoboteqDriver::RoboteqDriver(const rclcpp::NodeOptions &options): Node("roboteq_
 	}
 	catch (serial::IOException &e){
 		RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Unable to open port " << serial_port_);
-		RCLCPP_INFO_STREAM(this->get_logger(),tag << "Unable to open port" << serial_port_);
 		rclcpp::shutdown();
 	}
 
@@ -120,29 +168,30 @@ void RoboteqDriver::cmdSetup(){
 
 
 void RoboteqDriver::run(){
-	initializeServices();
-	get_parameter("frequency", frequency_);
+	// initializeServices();
+	std::stringstream ss0, ss1;
+	ss0 << "^echof 1_";
+	ss1 << "# c_/\"DH?\",\"?\"";
 
-	if (frequency_ > 0){
-		std::stringstream ss0, ss1;
-		ss0 << "^echof 1_";
-		ss1 << "# c_/\"DH?\",\"?\"";
-		std::vector<std::string> query_map;
-		formQuery("query", query_map, query_pub_, ss1);
+	for (auto item : queries_){
+		RCLCPP_INFO_STREAM(this->get_logger(),tag << "Publish topic: " << item.first);
+		query_pub_.push_back(create_publisher<roboteq_interfaces::msg::ChannelValues>(item.first, 100));
 
-		ss1 << "# " << frequency_ << "_";
-		
-		ser_.write(ss0.str());
-		ser_.write(ss1.str());
-		ser_.flush();
+		std::string cmd = item.second;
+		ss1 << cmd << "_";
 	}
+
+	ss1 << "# " << frequency_ << "_";
 	
+	ser_.write(ss0.str());
+	ser_.write(ss1.str());
+	ser_.flush();
+	
+
     serial_read_pub_ = create_publisher<std_msgs::msg::String>("read", rclcpp::SystemDefaultsQoS());
 
-	if (frequency_ > 0){
-		std::chrono::duration<int, std::milli> dt (1000/frequency_);
-		timer_pub_ = create_wall_timer(dt, std::bind(&RoboteqDriver::queryCallback, this) );
-	}
+	std::chrono::duration<int, std::milli> dt (1000/frequency_);
+	timer_pub_ = create_wall_timer(dt, std::bind(&RoboteqDriver::queryCallback, this) );
 }
 
 
@@ -251,26 +300,10 @@ void RoboteqDriver::cmdVelCallback(const geometry_msgs::msg::Twist &msg){
 // 	maintenancesrv_ 	= nh_.advertiseService("maintenance_service", &RoboteqDriver::maintenanceService, this);
 // }
 
-void RoboteqDriver::formQuery(std::string param, 
-							std::vector<std::string> &queries, 
-							std::vector<rclcpp::Publisher<roboteq_interfaces::msg::ChannelValues>::SharedPtr> &pubs,
-							std::stringstream &ser_str){
-	get_parameter(param, queries);
-	for (size_t i = 0; i < queries.size(); i++){
-		RCLCPP_INFO_STREAM(this->get_logger(),tag << "Publish topic: " << queries[i]);
-		pubs.push_back(create_publisher<roboteq_interfaces::msg::ChannelValues>(queries[i], 100));
-
-		ser_str << queries[i] << "_";
-	}
-}
-
 
 void RoboteqDriver::queryCallback(){
-	
 	auto current_time = this->now();
 	if (ser_.available()){
-
-
 		std_msgs::msg::String result;
 
 		std::lock_guard<std::mutex> lock(locker);
@@ -325,6 +358,8 @@ void RoboteqDriver::queryCallback(){
 						}
 						catch (const std::exception &e){
 							RCLCPP_ERROR_STREAM(this->get_logger(),tag << "Garbage data on Serial");
+							RCLCPP_ERROR_STREAM(this->get_logger(), result.data);
+							RCLCPP_ERROR_STREAM(this->get_logger(), e.what());
 							std::cerr << e.what() << '\n';
 						}
 					}

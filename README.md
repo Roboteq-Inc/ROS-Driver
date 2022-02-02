@@ -55,7 +55,7 @@ queryG:
 cd YOUR_WS/src/
 git clone https://github.com/DoanNguyenTrong/roboteq_controller_ros.git
 cd YOUR_WS
-catkin build roboteq_controller
-source devel/setup.bash
-roslaunch roboteq_controller driver.launch
+colcon build --packages-select roboteq_controller
+. install/setup.bash
+ros2 launch roboteq_controller roboteq_launch.py
 ```
