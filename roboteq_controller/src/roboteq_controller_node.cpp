@@ -304,7 +304,7 @@ void RoboteqDriver::queryCallback(const ros::TimerEvent &){
 				}
 			}
 
-			if (fields_H[0] == "H"){
+			if (fields_H.size() > 0 && fields_H[0] == "H"){
 				for (int i = 0; i < query_pub_.size(); ++i){
 					std::vector<std::string> sub_fields_H;
 					boost::split(sub_fields_H, fields_H[i + 1], boost::algorithm::is_any_of(":"));
