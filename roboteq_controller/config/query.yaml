@@ -1,0 +1,38 @@
+serial_port : "/dev/sensors/XDC2460" # Udev rule to make a virtual port that's associated to specific hw
+baudrate : 115200
+cmd_vel_topic: "/cmd_vel_roboteq"
+
+closed_loop: true
+
+# For differential drive control (dual channel controller)
+diff_drive_mode: true
+wheel_circumference: 0.6594 # [m]
+track_width: .6223 # [m]
+max_rpm: 100 # [rpm]
+encoder_resolution: 1024
+
+# For querying data from the motor controller
+frequency: 50   #higher frequency (value is in ms)
+query:
+  motor_amps : ?A 
+  motor_command : ?M
+  # hall_count : ?Cb
+  # hall_speed : ?BS
+  volts : ?V
+  feedback : ?F 
+  # battery_amps : ?BA
+  # power : ?P          
+  # fault_flag : ?FF  
+  # motor_amps2 : ?MA
+  # motor_command2 : ?FM
+  # hall_count2 : ?FM
+  # hall_speed2 : ?FS
+  # volts2 : ?V
+  # feedback2 : ?rmp 
+  # battery_amps2 : ?PHA
+  # power2 : ?sns          
+  # fault_flag2 : ?S  
+  # status_flag : ?FS
+  # firmware_id : ?FID  
+  encoder_count : ?C
+  encoder_speed : ?S  
