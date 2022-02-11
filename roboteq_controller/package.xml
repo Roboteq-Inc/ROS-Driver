@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>roboteq_controller</name>
+  <version>0.0.5</version>
+  <description>The roboteq_controller package</description>
+  <maintainer email="nguyentrongdoan.0@gmail.com">Doan Nguyen</maintainer>
+  
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
+  
+  <depend>roboteq_interfaces</depend>
+  <depend>serial</depend>
+  <depend>geometry_msgs</depend>
+
+  <exec_depend>ros2launch</exec_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
