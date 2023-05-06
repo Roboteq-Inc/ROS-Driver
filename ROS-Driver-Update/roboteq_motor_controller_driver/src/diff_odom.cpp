@@ -90,7 +90,7 @@ Odometry_calc::Odometry_calc(){
 	r_wheel_sub = n.subscribe("/hall_count",1000, &Odometry_calc::rightencoderCb, this);
 
 
-  	odom_pub = n.advertise<nav_msgs::Odometry>("odom1", 50);   
+  	odom_pub = n.advertise<nav_msgs::Odometry>("odom", 50);   
   	
 
 
@@ -295,7 +295,7 @@ void Odometry_calc::leftencoderCb(const roboteq_motor_controller_driver::channel
 {
 
 // ROS_INFO_STREAM("Left tick" << left_ticks->data);
-	double enc = left_ticks.value[1];
+	double enc = left_ticks.value[0];
 	
 
 
@@ -332,7 +332,7 @@ void Odometry_calc::rightencoderCb(const roboteq_motor_controller_driver::channe
 // ROS_INFO_STREAM("Right tick" << right_ticks->data);
 
 
-	double enc = right_ticks.value[2];
+	double enc = right_ticks.value[1];
 	
 	if((enc < encoder_low_wrap) && (prev_lencoder > encoder_high_wrap))
 	{
